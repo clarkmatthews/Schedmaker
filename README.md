@@ -14,6 +14,7 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 - Each bar shows start/end time and the **job name**, color-coded by job.
 - **Unassigned** is a first-class row so open shifts stay visible.
 - Publish or unpublish a day or an entire week in one action.
+- Employee and manager login - shift / change notifications via SMS and ical
 
 ### Hours, overtime, and labor overview (overtime rules by state California default)
 
