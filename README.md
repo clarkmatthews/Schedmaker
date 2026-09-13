@@ -14,7 +14,6 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 - Each bar shows start/end time and the **job name**, color-coded by job.
 - **Unassigned** is a first-class row so open shifts stay visible.
 - Publish or unpublish a day or an entire week in one action.
-- A live clock shows the team timezone in the toolbar.
 
 ### Hours, overtime, and labor overview
 
