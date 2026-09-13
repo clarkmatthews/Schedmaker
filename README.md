@@ -15,7 +15,7 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 - **Unassigned** is a first-class row so open shifts stay visible.
 - Publish or unpublish a day or an entire week in one action.
 
-### Hours, overtime, and labor overview
+### Hours, overtime, and labor overview (overtime rules by state California default)
 
 The calendar is built for labor cost, not just coverage.
 
@@ -25,7 +25,7 @@ The calendar is built for labor cost, not just coverage.
 - The **Schedule overview** panel sums hours, overtime, meal violations, and flagged shifts for the visible range.
 - Overtime uses the location’s rules: daily after 8, double after 12, weekly after 40, and optional seventh-day overtime (California defaults). Weekly OT is computed from the full workweek even when you are looking at a single day.
 
-### Meal-break warnings
+### Meal-break warnings - California break support and multi state support
 
 When meal rules are on, shifts that miss a required meal show a red **!** on the card. Hover the icon for the reason.
 
