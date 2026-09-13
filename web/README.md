@@ -1,6 +1,8 @@
 # ESP Scheduler
 
-Employee scheduling for teams. Next.js, PostgreSQL, and Auth.js.
+The Next.js app for [ESP Scheduler](../README.md). Employee scheduling for teams, released under the MIT License.
+
+For the feature tour and screenshots, see the [repository README](../README.md).
 
 ## Setup
 
