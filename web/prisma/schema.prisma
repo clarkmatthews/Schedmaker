@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(uuid()) @db.Uuid
+  email              String   @unique
+  name               String   @default("")
+  passwordHash       String   @default("")
+  phoneNumber        String?  @unique
+  photoUrl           String   @default("")
+  confirmedAndActive Boolean  @default(false)
+  support            Boolean  @default(false)
+  memberSince        DateTime @default(now())
+  icalToken          String   @unique @default(uuid())
+
+  emailTokens      EmailToken[]
+  directoryEntries Directory[]
+  adminOf          Admin[]
+  workerOf         Worker[]
+  shifts           Shift[]
+  coveringBreaks   BreakCoverage[]
+}
+
+model EmailToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  type      String
+  email     String
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Company {
+  id                   String  @id @default(uuid()) @db.Uuid
+  name                 String
+  archived             Boolean @default(false)
+  defaultTimezone      String  @default("UTC")
+  defaultDayWeekStarts String  @default("monday")
+  hoursTemplateId      String? @db.Uuid
+  hoursTemplate        HoursTemplate? @relation("AssignedHours", fields: [hoursTemplateId], references: [id], onDelete: SetNull)
+  lockHistoricalSchedule Boolean @default(false)
+  laborState             String  @default("")
+  mealRules              Json?
+  overtimeRules          Json?
+
+  teams            Team[]
+  directory        Directory[]
+  admins           Admin[]
+  responsibilities Responsibility[]
+  hoursTemplates   HoursTemplate[]  @relation("OwnedHours")
+}
+
+model Team {
+  id            String  @id @default(uuid()) @db.Uuid
+  companyId     String  @db.Uuid
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name          String
+  archived      Boolean @default(false)
+  timezone      String  @default("UTC")
+  dayWeekStarts String  @default("monday")
+  color         String  @default("48B7AB")
+
+  jobs             Job[]
+  shifts           Shift[]
+  workers          Worker[]
+  responsibilities Responsibility[]
+
+  @@index([companyId])
+}
+
+model Job {
+  id       String  @id @default(uuid()) @db.Uuid
+  teamId   String  @db.Uuid
+  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name     String
+  archived Boolean @default(false)
+  color    String  @default("48B7AB")
+
+  shifts          Shift[]
+  responsibilities JobResponsibility[]
+
+  @@index([teamId])
+}
+
+model Shift {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @db.Uuid
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  jobId     String?  @db.Uuid
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  published Boolean  @default(false)
+  start     DateTime
+  stop      DateTime
+  breaks    ShiftBreak[]
+
+  @@index([teamId, start])
+  @@index([userId])
+  @@index([jobId])
+}
+
+model ShiftBreak {
+  id       String          @id @default(uuid()) @db.Uuid
+  shiftId  String          @db.Uuid
+  shift    Shift           @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  start    DateTime
+  stop     DateTime
+  coverage BreakCoverage[]
+
+  @@index([shiftId])
+}
+
+model Responsibility {
+  id          String  @id @default(uuid()) @db.Uuid
+  companyId   String  @db.Uuid
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  teamId      String? @db.Uuid
+  team        Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  name        String
+  description String  @default("")
+  archived    Boolean @default(false)
+
+  jobs     JobResponsibility[]
+  coverage BreakCoverage[]
+
+  @@index([companyId])
+  @@index([teamId])
+}
+
+model JobResponsibility {
+  jobId            String         @db.Uuid
+  job              Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  responsibilityId String         @db.Uuid
+  responsibility   Responsibility @relation(fields: [responsibilityId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, responsibilityId])
+}
+
+model BreakCoverage {
+  id               String         @id @default(uuid()) @db.Uuid
+  breakId          String         @db.Uuid
+  break            ShiftBreak     @relation(fields: [breakId], references: [id], onDelete: Cascade)
+  responsibilityId String         @db.Uuid
+  responsibility   Responsibility @relation(fields: [responsibilityId], references: [id], onDelete: Cascade)
+  coveringUserId   String?        @db.Uuid
+  coveringUser     User?          @relation(fields: [coveringUserId], references: [id], onDelete: SetNull)
+
+  @@index([breakId])
+  @@index([responsibilityId])
+}
+
+model Directory {
+  companyId    String  @db.Uuid
+  userId       String  @db.Uuid
+  internalId       String  @default("")
+  deactivated      Boolean @default(false)
+  mealBreakWaiver  Boolean @default(false)
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, userId])
+  @@index([userId])
+}
+
+model Worker {
+  teamId String @db.Uuid
+  userId String @db.Uuid
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+}
+
+model HoursTemplate {
+  id        String  @id @default(uuid()) @db.Uuid
+  companyId String  @db.Uuid
+  company   Company @relation("OwnedHours", fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+
+  days      HoursTemplateDay[]
+  locations Company[]          @relation("AssignedHours")
+
+  @@index([companyId])
+}
+
+model HoursTemplateDay {
+  id                String        @id @default(uuid()) @db.Uuid
+  templateId        String        @db.Uuid
+  template          HoursTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  weekday           String
+  closed            Boolean       @default(false)
+  scheduleStartSlot Int           @default(32)
+  scheduleEndSlot   Int           @default(96)
+  businessStartSlot Int?
+  businessEndSlot   Int?
+
+  @@unique([templateId, weekday])
+}
+
+model Admin {
+  companyId String  @db.Uuid
+  userId    String  @db.Uuid
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, userId])
+  @@index([userId])
+}

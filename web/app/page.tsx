@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { AuthHeader } from "@/components/marketing/site-header";
+import { LoginForm } from "@/components/forms/auth-forms";
+
+export default async function HomePage() {
+  const session = await auth();
+  if (session?.user?.id) {
+    redirect("/app");
+  }
+
+  return (
+    <div className="min-h-screen">
+      <AuthHeader />
+      <main className="mx-auto max-w-md px-6 py-16">
+        <h1 className="mb-2 text-3xl font-bold text-ink">ESP Scheduler</h1>
+        <p className="mb-6 text-sm text-muted">Log in to manage your schedule.</p>
+        <div className="rounded-lg border border-border bg-white p-6">
+          <LoginForm />
+        </div>
+        <p className="mt-4 text-center text-sm text-muted">
+          No account?{" "}
+          <Link href="/signup" className="text-teal hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f8f8;
+  --foreground: #1f2a2a;
+  --card: #ffffff;
+  --muted: #5c6b6a;
+  --border: #d7e0df;
+  --teal: #48b7ab;
+  --teal-dark: #3a9a90;
+  --ink: #16302e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-teal: var(--teal);
+  --color-teal-dark: var(--teal-dark);
+  --color-ink: var(--ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.break-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.55) 0,
+    rgba(255, 255, 255, 0.55) 4px,
+    rgba(0, 0, 0, 0.18) 4px,
+    rgba(0, 0, 0, 0.18) 8px
+  );
+}

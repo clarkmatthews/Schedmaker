@@ -1,0 +1,17 @@
+# Secrets
+.env
+web/.env
+web/.env.local
+web/.env*.local
+
+# Dependencies and build output
+node_modules/
+web/.next/
+web/out/
+web/tsconfig.tsbuildinfo
+web/next-env.d.ts
+
+# Logs and OS
+*.log
+.DS_Store
+.vercel
