@@ -141,6 +141,14 @@ A 15-minute timeline with grey hours-template bands, compact shift bars, and per
 
 <img width="1201" height="809" alt="image" src="https://github.com/user-attachments/assets/5975ec62-4f5f-418e-9cf5-73ef2b0dcb8c" />
 
+### Estimated labor breakdown by job $
+
+<img width="1208" height="799" alt="image" src="https://github.com/user-attachments/assets/4d2c2111-1b6a-4d6d-8292-2bf14c7fe896" />
+
+### Overtime scheduled view
+
+<img width="1204" height="813" alt="image" src="https://github.com/user-attachments/assets/909bb6e6-18c5-4587-99e8-b53c9ac5c76d" />
+
 ### Scheduling settings
 
 Location state, meal-break thresholds, overtime rules, and the optional lock on historical dates.
