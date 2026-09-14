@@ -1,6 +1,6 @@
-# ESP Scheduler
+# Schedmaker
 
-The Next.js app for [ESP Scheduler](../README.md). Employee scheduling for teams, released under the MIT License.
+The Next.js app for [Schedmaker](../README.md). Employee scheduling for teams, released under the MIT License.
 
 For the feature tour and screenshots, see the [repository README](../README.md).
 
@@ -29,8 +29,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Seeded login: `manager@esp-scheduler.local` / `scheduler123`  
-Support login: `support@esp-scheduler.local` / `scheduler123`
+Seeded login: `manager@schedmaker.local` / `scheduler123`  
+Support login: `support@schedmaker.local` / `scheduler123`
 
 ## Postgres
 

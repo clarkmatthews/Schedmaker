@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ESP Scheduler",
+  title: "Schedmaker",
   description: "Employee scheduling for teams",
 };
 

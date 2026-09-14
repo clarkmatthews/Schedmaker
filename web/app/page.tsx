@@ -14,7 +14,7 @@ export default async function HomePage() {
     <div className="min-h-screen">
       <AuthHeader />
       <main className="mx-auto max-w-md px-6 py-16">
-        <h1 className="mb-2 text-3xl font-bold text-ink">ESP Scheduler</h1>
+        <h1 className="mb-2 text-3xl font-bold text-ink">Schedmaker</h1>
         <p className="mb-6 text-sm text-muted">Log in to manage your schedule.</p>
         <div className="rounded-lg border border-border bg-white p-6">
           <LoginForm />

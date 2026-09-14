@@ -45,7 +45,7 @@ export async function GET(
         : `Shift @ ${shift.team.name}`;
       return [
         "BEGIN:VEVENT",
-        `UID:${shift.id}@esp-scheduler`,
+        `UID:${shift.id}@schedmaker`,
         `DTSTAMP:${formatIcsDate(now)}`,
         `DTSTART:${formatIcsDate(shift.start)}`,
         `DTEND:${formatIcsDate(shift.stop)}`,
@@ -58,7 +58,7 @@ export async function GET(
   const body = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//ESP Scheduler//EN",
+    "PRODID:-//Schedmaker//EN",
     "CALSCALE:GREGORIAN",
     events,
     "END:VCALENDAR",

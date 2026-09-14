@@ -8,7 +8,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - esp-scheduler-pg:/var/lib/postgresql/data
+      - schedmaker-pg:/var/lib/postgresql/data
 
 volumes:
-  esp-scheduler-pg:
+  schedmaker-pg:

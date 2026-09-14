@@ -1,4 +1,4 @@
-# ESP Scheduler
+# Schedmaker
 
 Employee scheduling for restaurants, retail, and other shift-based teams. Build a week or a single day on a 15-minute grid, assign jobs and breaks, and see meal-break warnings and overtime as you go.
 
@@ -102,8 +102,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Manager | `manager@esp-scheduler.local` | `scheduler123` |
-| Support | `support@esp-scheduler.local` | `scheduler123` |
+| Manager | `manager@schedmaker.local` | `scheduler123` |
+| Support | `support@schedmaker.local` | `scheduler123` |
 
 Set `DATABASE_URL` to your Postgres instance and generate `AUTH_SECRET`. The seed targets the `scheduler` database as `schedUser`. `npx prisma migrate deploy` does not need `CREATEDB` for a shadow database.
 
@@ -156,4 +156,4 @@ Name, default timezone, and the day the workweek starts.
 
 ---
 
-ESP Scheduler is an [MIT-licensed](LICENSE) project. It started from [Staffjoy](https://github.com/Staffjoy/v2), the open-source employee scheduler created by StaffJoy, Inc.
+Schedmaker is an [MIT-licensed](LICENSE) project. It started from [Staffjoy](https://github.com/Staffjoy/v2), the open-source employee scheduler created by StaffJoy, Inc.

@@ -14,7 +14,7 @@ export async function notifyOnboardWorker(companyId: string, userId: string) {
   ]);
   if (!company || !user) return;
 
-  const subject = `You've been added to ${company.name} on ESP Scheduler`;
+  const subject = `You've been added to ${company.name} on Schedmaker`;
   const body = `Hi ${user.name || "there"}, you were added to ${company.name}. Activate or log in to see your schedule.`;
   await sendEmail({ to: user.email, subject, html: `<p>${body}</p>` });
   if (user.phoneNumber) {
@@ -36,7 +36,7 @@ export async function notifyNewShifts(
     html: `<p>You have new published shift(s):</p><p>${list}</p>`,
   });
   if (user.phoneNumber) {
-    await sendSms({ to: user.phoneNumber, body: `New ESP Scheduler shift(s): ${text}` });
+    await sendSms({ to: user.phoneNumber, body: `New Schedmaker shift(s): ${text}` });
   }
 }
 
@@ -54,7 +54,7 @@ export async function notifyRemovedShifts(
     html: `<p>These published shift(s) were removed or unpublished:</p><p>${list}</p>`,
   });
   if (user.phoneNumber) {
-    await sendSms({ to: user.phoneNumber, body: `ESP Scheduler shift(s) removed: ${text}` });
+    await sendSms({ to: user.phoneNumber, body: `Schedmaker shift(s) removed: ${text}` });
   }
 }
 
@@ -75,7 +75,7 @@ export async function notifyChangedShift(
   if (user.phoneNumber) {
     await sendSms({
       to: user.phoneNumber,
-      body: `ESP Scheduler shift updated: ${from} -> ${to}`,
+      body: `Schedmaker shift updated: ${from} -> ${to}`,
     });
   }
 }
@@ -83,7 +83,7 @@ export async function notifyChangedShift(
 export async function notifyActivation(email: string, name: string, url: string) {
   await sendEmail({
     to: email,
-    subject: "Activate your ESP Scheduler account",
+    subject: "Activate your Schedmaker account",
     html: `<p>Hi ${name || "there"},</p><p>Confirm your account and set a password:</p><p><a href="${url}">${url}</a></p>`,
   });
 }
@@ -91,7 +91,7 @@ export async function notifyActivation(email: string, name: string, url: string)
 export async function notifyPasswordReset(email: string, url: string) {
   await sendEmail({
     to: email,
-    subject: "Reset your ESP Scheduler password",
+    subject: "Reset your Schedmaker password",
     html: `<p>Reset your password using this link (expires in 2 hours):</p><p><a href="${url}">${url}</a></p>`,
   });
 }

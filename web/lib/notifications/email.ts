@@ -12,7 +12,7 @@ export async function sendEmail(params: {
   }
 
   const body = new URLSearchParams();
-  body.set("from", `ESP Scheduler <mailgun@${domain}>`);
+  body.set("from", `Schedmaker <mailgun@${domain}>`);
   body.set("to", params.to);
   body.set("subject", params.subject);
   body.set("html", params.html);

@@ -25,7 +25,7 @@ export async function AppShell({
           <div className="flex items-center gap-3">
             <AppMenu companyId={companyId} isAdmin={isAdmin} teams={teams} />
             <Link href="/app" className="text-lg font-bold text-teal">
-              ESP Scheduler
+              Schedmaker
             </Link>
             {companyName ? (
               <span className="text-sm text-white/80">{companyName}</span>

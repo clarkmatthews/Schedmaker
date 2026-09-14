@@ -35,31 +35,31 @@ async function upsertUser(params: {
 
 async function main() {
   const support = await upsertUser({
-    email: "support@esp-scheduler.local",
+    email: "support@schedmaker.local",
     name: "Support Admin",
     password: "scheduler123",
     support: true,
   });
   const manager = await upsertUser({
-    email: "manager@esp-scheduler.local",
+    email: "manager@schedmaker.local",
     name: "Maya Manager",
     password: "scheduler123",
     phoneNumber: "+15555550100",
   });
   const alice = await upsertUser({
-    email: "alice@esp-scheduler.local",
+    email: "alice@schedmaker.local",
     name: "Alice Nguyen",
     password: "scheduler123",
     phoneNumber: "+15555550101",
   });
   const bob = await upsertUser({
-    email: "bob@esp-scheduler.local",
+    email: "bob@schedmaker.local",
     name: "Bob Alvarez",
     password: "scheduler123",
     phoneNumber: "+15555550102",
   });
   const cara = await upsertUser({
-    email: "cara@esp-scheduler.local",
+    email: "cara@schedmaker.local",
     name: "Cara Patel",
     password: "scheduler123",
     phoneNumber: "+15555550103",
@@ -207,7 +207,7 @@ async function main() {
     });
   }
 
-  console.log("Seeded Demo Cafe. Log in as manager@esp-scheduler.local / scheduler123");
+  console.log("Seeded Demo Cafe. Log in as manager@schedmaker.local / scheduler123");
 }
 
 main()
