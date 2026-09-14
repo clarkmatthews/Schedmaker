@@ -2,6 +2,7 @@ export type SettingsSectionId =
   | "company"
   | "hours"
   | "scheduling"
+  | "mms"
   | "teams"
   | "responsibilities"
   | "people"
@@ -17,6 +18,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: "company", label: "Company", adminOnly: true },
   { id: "hours", label: "Hours", adminOnly: true },
   { id: "scheduling", label: "Scheduling", adminOnly: true },
+  { id: "mms", label: "MMS", adminOnly: true },
   { id: "teams", label: "Teams", adminOnly: true },
   { id: "responsibilities", label: "Responsibilities", adminOnly: true },
   { id: "people", label: "People", adminOnly: true },

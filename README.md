@@ -14,7 +14,7 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 - Each bar shows start/end time and the **job name**, color-coded by job.
 - **Unassigned** is a first-class row so open shifts stay visible.
 - Publish or unpublish a day or an entire week in one action.
-- Employee and manager login - shift / change notifications via SMS and ical
+- Employee and manager login, iCal feeds, and weekly schedule MMS on publish
 
 ### Hours, overtime, and labor overview (overtime rules by state California default)
 
@@ -85,7 +85,7 @@ Choosing a US state loads that state’s meal and overtime defaults (California 
 
 - Sign up, login, activation links, and password reset via Auth.js.
 - Company admins manage people and settings; workers see their own schedule context.
-- Email (Mailgun) and SMS (Twilio) are optional. Without keys, activation and reset links print to the server console.
+- Email (Mailgun) is optional. Weekly schedule MMS is configured per company in Settings → MMS (Twilio). If MMS is off, publish messages print to the server console.
 
 ## Quick start
 

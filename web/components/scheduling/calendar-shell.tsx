@@ -27,6 +27,7 @@ import { DayView } from "@/components/scheduling/views/day-view";
 import { LaborSummary } from "@/components/scheduling/labor-summary";
 import type {
   CalendarJob,
+  CalendarResponsibility,
   CalendarShift,
   CalendarWorker,
   ViewBy,
@@ -45,6 +46,7 @@ export function CalendarShell({
   shifts,
   workers,
   jobs,
+  responsibilities,
   hoursTemplate,
   overtimeEnabled = false,
 }: {
@@ -59,6 +61,7 @@ export function CalendarShell({
   shifts: CalendarShift[];
   workers: CalendarWorker[];
   jobs: CalendarJob[];
+  responsibilities: CalendarResponsibility[];
   hoursTemplate: HoursTemplateView | null;
   overtimeEnabled?: boolean;
 }) {
@@ -118,6 +121,7 @@ export function CalendarShell({
       stopSlot: stopSlot <= startSlot ? 95 : stopSlot,
       published: false,
       breaks: [],
+      responsibilityIds: [],
       ...assignment(rowId),
     });
     setError(null);
@@ -133,6 +137,7 @@ export function CalendarShell({
       jobId: shift.jobId ?? "",
       published: shift.published,
       breaks: breaksFromShift(shift.start, shift.breaks),
+      responsibilityIds: shift.responsibilityIds,
     });
     setError(null);
   }
@@ -147,6 +152,7 @@ export function CalendarShell({
     formData.set("jobId", next.jobId);
     formData.set("published", next.published ? "true" : "false");
     formData.set("breaks", JSON.stringify(next.breaks));
+    formData.set("responsibilityIds", JSON.stringify(next.responsibilityIds));
     return formData;
   }
 
@@ -320,6 +326,7 @@ export function CalendarShell({
           onCreate={openCreate}
           onOpen={openEdit}
           onPlace={place}
+          onSelectDay={(day) => goTo("day", day)}
           overtimeEnabled={overtimeEnabled}
         />
       )}
@@ -332,6 +339,7 @@ export function CalendarShell({
           weekDays={weekDays}
           workers={workers}
           jobs={jobs}
+          responsibilities={responsibilities}
           error={error}
           onChange={setDraft}
           onClose={() => setDraft(null)}

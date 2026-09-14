@@ -29,15 +29,11 @@ export async function notifyNewShifts(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
   const list = shifts.map((s) => shiftWindow(s.start, s.stop)).join("<br>");
-  const text = shifts.map((s) => shiftWindow(s.start, s.stop)).join(", ");
   await sendEmail({
     to: user.email,
     subject: shifts.length === 1 ? "New shift assigned" : "New shifts assigned",
     html: `<p>You have new published shift(s):</p><p>${list}</p>`,
   });
-  if (user.phoneNumber) {
-    await sendSms({ to: user.phoneNumber, body: `New Schedmaker shift(s): ${text}` });
-  }
 }
 
 export async function notifyRemovedShifts(
@@ -47,15 +43,11 @@ export async function notifyRemovedShifts(
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
   const list = shifts.map((s) => shiftWindow(s.start, s.stop)).join("<br>");
-  const text = shifts.map((s) => shiftWindow(s.start, s.stop)).join(", ");
   await sendEmail({
     to: user.email,
     subject: shifts.length === 1 ? "Shift removed" : "Shifts removed",
     html: `<p>These published shift(s) were removed or unpublished:</p><p>${list}</p>`,
   });
-  if (user.phoneNumber) {
-    await sendSms({ to: user.phoneNumber, body: `Schedmaker shift(s) removed: ${text}` });
-  }
 }
 
 export async function notifyChangedShift(
@@ -72,12 +64,6 @@ export async function notifyChangedShift(
     subject: "Shift updated",
     html: `<p>Your shift changed from ${from} to ${to}.</p>`,
   });
-  if (user.phoneNumber) {
-    await sendSms({
-      to: user.phoneNumber,
-      body: `Schedmaker shift updated: ${from} -> ${to}`,
-    });
-  }
 }
 
 export async function notifyActivation(email: string, name: string, url: string) {

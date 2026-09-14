@@ -45,4 +45,8 @@ npx prisma db seed
 
 ## Notifications
 
-Without Mailgun or Twilio env vars, email and SMS are logged to the server console. Activation and password-reset links appear there in local development.
+Email uses Mailgun env vars. Without `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`, email is logged to the server console.
+
+Weekly schedule MMS is configured per company under **Settings → MMS** (Twilio Account SID, Auth Token, From number, and manager-on-duty phone). Messages go out only when you **Publish day** or **Publish week**. If MMS is off or incomplete, the message is printed to the console as `[mms:dev]` and the week image is saved to `tmp/mms`.
+
+Activation and password-reset links appear in the console during local development.

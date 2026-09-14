@@ -125,3 +125,44 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
     return { error: "Could not update scheduling rules." };
   }
 }
+
+export async function updateMmsSettingsAction(companyId: string, formData: FormData) {
+  try {
+    await requireCompanyAdmin(companyId);
+    const enabled = String(formData.get("mmsEnabled") ?? "") === "true";
+    const accountSid = String(formData.get("mmsAccountSid") ?? "").trim();
+    const authToken = String(formData.get("mmsAuthToken") ?? "").trim();
+    const fromNumber = String(formData.get("mmsFromNumber") ?? "").trim();
+    const managerPhone = String(formData.get("mmsManagerPhone") ?? "").trim();
+
+    const existing = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { mmsAuthToken: true },
+    });
+    if (!existing) return { error: "Company not found." };
+
+    const nextToken = authToken || existing.mmsAuthToken;
+    if (enabled) {
+      if (!accountSid) return { error: "Twilio Account SID is required." };
+      if (!nextToken) return { error: "Twilio Auth Token is required." };
+      if (!fromNumber) return { error: "Twilio MMS From number is required." };
+      if (!managerPhone) return { error: "Manager on duty phone number is required." };
+    }
+
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        mmsEnabled: enabled,
+        mmsAccountSid: accountSid,
+        mmsAuthToken: nextToken,
+        mmsFromNumber: fromNumber,
+        mmsManagerPhone: managerPhone,
+      },
+    });
+    revalidatePath(`/app/companies/${companyId}/settings`);
+    return { ok: true as const };
+  } catch (error) {
+    if (error instanceof ActionError) return { error: error.message };
+    return { error: "Could not update MMS settings." };
+  }
+}

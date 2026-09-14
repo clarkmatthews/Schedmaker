@@ -12,6 +12,7 @@ import {
   assertNoUserOverlap,
 } from "@/lib/shifts";
 import { notifyNewShifts, notifyRemovedShifts } from "@/lib/notifications";
+import { notifyPublishedSchedule } from "@/lib/notifications/schedule-mms";
 import {
   dateFromSlot,
   durationSlots,
@@ -61,6 +62,43 @@ function parseBreaks(formData: FormData): BreakInput[] {
   } catch {
     throw new Error("Invalid break data.");
   }
+}
+
+function parseResponsibilityIds(formData: FormData): string[] {
+  const raw = String(formData.get("responsibilityIds") ?? "");
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.map((value) => String(value).trim()).filter(Boolean))];
+  } catch {
+    throw new Error("Invalid responsibility data.");
+  }
+}
+
+async function assertResponsibilities(
+  companyId: string,
+  ids: string[],
+  alreadyAssigned: string[] = [],
+) {
+  if (!ids.length) return;
+  const unique = [...new Set(ids)];
+  const allowedArchived = new Set(alreadyAssigned);
+  const rows = await prisma.responsibility.findMany({
+    where: { id: { in: unique }, companyId },
+  });
+  if (rows.length !== unique.length) {
+    throw new Error("Invalid responsibility.");
+  }
+  for (const row of rows) {
+    if (row.archived && !allowedArchived.has(row.id)) {
+      throw new Error("That responsibility is archived.");
+    }
+  }
+}
+
+function responsibilityCreates(ids: string[]) {
+  return ids.map((responsibilityId) => ({ responsibilityId }));
 }
 
 function datesFromSlots(day: Date, startIndex: number, stopIndex: number) {
@@ -183,8 +221,10 @@ export async function createShiftsAction(
     const userId = emptyId(formData.get("userId"));
     const published = String(formData.get("published") ?? "") === "true";
     const breakInputs = parseBreaks(formData);
+    const responsibilityIds = parseResponsibilityIds(formData);
 
     await assertJobAndUser(companyId, teamId, jobId, userId);
+    await assertResponsibilities(companyId, responsibilityIds);
     const plannedStarts = targets.map(
       (day) => datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot).start,
     );
@@ -206,6 +246,7 @@ export async function createShiftsAction(
             stop,
             published,
             breaks: { create: breaks },
+            responsibilities: { create: responsibilityCreates(responsibilityIds) },
           },
         });
         shifts.push(shift);
@@ -236,7 +277,7 @@ export async function updateShiftAction(
     await requireCompanyAdmin(companyId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
-      include: { breaks: true },
+      include: { breaks: true, responsibilities: true },
     });
     if (!orig) return { error: "Shift not found." };
 
@@ -253,9 +294,15 @@ export async function updateShiftAction(
     const nextBreaks = hasBreaksField
       ? normalizeBreaks(start, stop, parseBreaks(formData))
       : offsetBreaks(orig.breaks, start.getTime() - orig.start.getTime());
+    const assignedIds = orig.responsibilities.map((row) => row.responsibilityId);
+    const nextResponsibilityIds = formData.has("responsibilityIds")
+      ? parseResponsibilityIds(formData)
+      : assignedIds;
+    await assertResponsibilities(companyId, nextResponsibilityIds, assignedIds);
 
     const next = await prisma.$transaction(async (tx) => {
       await tx.shiftBreak.deleteMany({ where: { shiftId } });
+      await tx.shiftResponsibility.deleteMany({ where: { shiftId } });
       return tx.shift.update({
         where: { id: shiftId },
         data: {
@@ -265,6 +312,7 @@ export async function updateShiftAction(
           userId,
           published,
           breaks: { create: nextBreaks },
+          responsibilities: { create: responsibilityCreates(nextResponsibilityIds) },
         },
       });
     });
@@ -290,7 +338,7 @@ export async function placeShiftAction(
     await requireCompanyAdmin(companyId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
-      include: { breaks: true },
+      include: { breaks: true, responsibilities: true },
     });
     if (!orig) return { error: "Shift not found." };
 
@@ -314,6 +362,8 @@ export async function placeShiftAction(
 
     const breaks = offsetBreaks(orig.breaks, start.getTime() - orig.start.getTime());
 
+    const origResponsibilityIds = orig.responsibilities.map((row) => row.responsibilityId);
+
     if (copy) {
       const created = await prisma.shift.create({
         data: {
@@ -324,6 +374,7 @@ export async function placeShiftAction(
           stop,
           published: orig.published,
           breaks: { create: breaks.map(({ start: bStart, stop: bStop }) => ({ start: bStart, stop: bStop })) },
+          responsibilities: { create: responsibilityCreates(origResponsibilityIds) },
         },
       });
       await notifyShiftCreated(created);
@@ -364,7 +415,7 @@ export async function copyShiftAction(
     await requireCompanyAdmin(companyId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
-      include: { breaks: true },
+      include: { breaks: true, responsibilities: true },
     });
     if (!orig) return { error: "Shift not found." };
 
@@ -403,6 +454,11 @@ export async function copyShiftAction(
               stop,
               published: orig.published,
               breaks: { create: breaks },
+              responsibilities: {
+                create: responsibilityCreates(
+                  orig.responsibilities.map((row) => row.responsibilityId),
+                ),
+              },
             },
           }),
         );
@@ -485,6 +541,12 @@ export async function bulkPublishShiftsAction(
     for (const [userId, userShifts] of notifs) {
       if (published) {
         await notifyNewShifts(userId, userShifts);
+        await notifyPublishedSchedule({
+          companyId,
+          teamId,
+          userId,
+          rangeStart: start,
+        });
       } else {
         await notifyRemovedShifts(userId, userShifts);
       }

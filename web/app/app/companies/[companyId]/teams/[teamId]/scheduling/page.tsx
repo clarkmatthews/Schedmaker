@@ -32,7 +32,10 @@ export default async function SchedulingPage({
         },
       },
       company: {
-        include: { hoursTemplate: { include: { days: true } } },
+        include: {
+          hoursTemplate: { include: { days: true } },
+          responsibilities: { orderBy: { name: "asc" } },
+        },
       },
     },
   });
@@ -54,6 +57,7 @@ export default async function SchedulingPage({
       user: { include: { directoryEntries: { where: { companyId } } } },
       job: true,
       breaks: true,
+      responsibilities: { select: { responsibilityId: true } },
     },
     orderBy: { start: "asc" },
   });
@@ -80,6 +84,11 @@ export default async function SchedulingPage({
         name: job.name,
         color: job.color,
       }))}
+      responsibilities={team.company.responsibilities.map((duty) => ({
+        id: duty.id,
+        name: duty.name,
+        archived: duty.archived,
+      }))}
       overtimeEnabled={Boolean(overtimeRules?.enabled)}
       shifts={(() => {
         const mapped = shifts.map((shift) => {
@@ -103,6 +112,7 @@ export default async function SchedulingPage({
               start: item.start.toISOString(),
               stop: item.stop.toISOString(),
             })),
+            responsibilityIds: shift.responsibilities.map((row) => row.responsibilityId),
           };
           const waivedFirst =
             !assignedDeactivated &&

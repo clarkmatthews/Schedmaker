@@ -19,6 +19,7 @@ export function WeekView({
   onCreate,
   onOpen,
   onPlace,
+  onSelectDay,
   overtimeEnabled = false,
 }: {
   days: Date[];
@@ -29,6 +30,7 @@ export function WeekView({
   onCreate: (day: Date, rowId: string) => void;
   onOpen: (shift: CalendarShift) => void;
   onPlace: (shiftId: string, day: Date, rowId: string, copy: boolean) => void;
+  onSelectDay: (day: Date) => void;
   overtimeEnabled?: boolean;
 }) {
   const dayTotals = days.map((day) => {
@@ -50,8 +52,15 @@ export function WeekView({
           <tr className="bg-ink text-white">
             <th className="sticky left-0 z-20 bg-ink px-3 py-2 text-left"> </th>
             {days.map((day) => (
-              <th key={day.toISOString()} className="px-3 py-2 font-medium">
-                {format(day, "EEE d")}
+              <th key={day.toISOString()} className="px-1 py-1 font-medium">
+                <button
+                  type="button"
+                  className="w-full rounded px-2 py-1 hover:bg-white/10"
+                  aria-label={`Open ${format(day, "EEEE, MMM d")} in day view`}
+                  onClick={() => onSelectDay(day)}
+                >
+                  {format(day, "EEE d")}
+                </button>
               </th>
             ))}
             <th className="sticky right-0 z-20 min-w-24 border-l border-white/20 bg-ink px-3 py-2 text-right font-medium">

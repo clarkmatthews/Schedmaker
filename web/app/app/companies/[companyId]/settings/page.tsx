@@ -11,6 +11,7 @@ import { SettingsAccordion } from "@/components/settings/settings-accordion";
 import { TeamSettings } from "@/components/settings/team-settings";
 import { HoursSettings } from "@/components/settings/hours-settings";
 import { SchedulingSettings } from "@/components/settings/scheduling-settings";
+import { MmsSettings } from "@/components/settings/mms-settings";
 import { toHoursTemplateView } from "@/lib/scheduling/hours";
 
 function parseSection(value?: string): SettingsSectionId {
@@ -87,6 +88,16 @@ export default async function CompanySettingsPage({
               laborState={company.laborState}
               mealRules={company.mealRules}
               overtimeRules={company.overtimeRules}
+            />
+          ),
+          mms: (
+            <MmsSettings
+              companyId={companyId}
+              enabled={company.mmsEnabled}
+              accountSid={company.mmsAccountSid}
+              fromNumber={company.mmsFromNumber}
+              managerPhone={company.mmsManagerPhone}
+              authTokenSet={Boolean(company.mmsAuthToken)}
             />
           ),
           teams: (

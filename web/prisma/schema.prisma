@@ -50,12 +50,29 @@ model Company {
   laborState             String  @default("")
   mealRules              Json?
   overtimeRules          Json?
+  mmsEnabled             Boolean @default(false)
+  mmsAccountSid          String  @default("")
+  mmsAuthToken           String  @default("")
+  mmsFromNumber          String  @default("")
+  mmsManagerPhone        String  @default("")
 
   teams            Team[]
   directory        Directory[]
   admins           Admin[]
   responsibilities Responsibility[]
   hoursTemplates   HoursTemplate[]  @relation("OwnedHours")
+}
+
+model MmsScheduleShare {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  teamId    String   @db.Uuid
+  userId    String   @db.Uuid
+  weekStart DateTime
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 model Team {
@@ -101,7 +118,8 @@ model Shift {
   published Boolean  @default(false)
   start     DateTime
   stop      DateTime
-  breaks    ShiftBreak[]
+  breaks           ShiftBreak[]
+  responsibilities ShiftResponsibility[]
 
   @@index([teamId, start])
   @@index([userId])
@@ -131,9 +149,19 @@ model Responsibility {
 
   jobs     JobResponsibility[]
   coverage BreakCoverage[]
+  shifts   ShiftResponsibility[]
 
   @@index([companyId])
   @@index([teamId])
+}
+
+model ShiftResponsibility {
+  shiftId          String         @db.Uuid
+  shift            Shift          @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  responsibilityId String         @db.Uuid
+  responsibility   Responsibility @relation(fields: [responsibilityId], references: [id], onDelete: Cascade)
+
+  @@id([shiftId, responsibilityId])
 }
 
 model JobResponsibility {

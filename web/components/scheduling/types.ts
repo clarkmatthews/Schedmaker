@@ -15,6 +15,7 @@ export type CalendarShift = {
   jobName: string | null;
   jobColor: string | null;
   breaks: CalendarBreak[];
+  responsibilityIds: string[];
   warnings: { code: string; message: string }[];
   regularMs: number;
   otMs: number;
@@ -22,6 +23,7 @@ export type CalendarShift = {
 
 export type CalendarWorker = { id: string; name: string };
 export type CalendarJob = { id: string; name: string; color: string };
+export type CalendarResponsibility = { id: string; name: string; archived: boolean };
 export type ViewBy = "employee" | "job";
 
 export type CalendarRow = { id: string; label: string; color: string };

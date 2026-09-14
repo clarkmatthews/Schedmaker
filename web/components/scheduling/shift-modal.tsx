@@ -7,7 +7,7 @@ import { BreakOffsetSelect, TimeSelect } from "@/components/scheduling/time-sele
 import type { BreakInput } from "@/lib/actions/shifts";
 import { breaksOverlap, firstOpenBreakOffset } from "@/lib/scheduling/break-rules";
 import { MAX_BREAK_SLOTS, SLOT_MINUTES } from "@/lib/scheduling/time-grid";
-import type { CalendarJob, CalendarWorker } from "@/components/scheduling/types";
+import type { CalendarJob, CalendarResponsibility, CalendarWorker } from "@/components/scheduling/types";
 
 export type ShiftDraft = {
   shiftId?: string;
@@ -18,6 +18,7 @@ export type ShiftDraft = {
   jobId: string;
   published: boolean;
   breaks: BreakInput[];
+  responsibilityIds: string[];
 };
 
 export function ShiftModal({
@@ -25,6 +26,7 @@ export function ShiftModal({
   weekDays,
   workers,
   jobs,
+  responsibilities,
   error,
   onChange,
   onClose,
@@ -36,6 +38,7 @@ export function ShiftModal({
   weekDays: Date[];
   workers: CalendarWorker[];
   jobs: CalendarJob[];
+  responsibilities: CalendarResponsibility[];
   error: string | null;
   onChange: (draft: ShiftDraft) => void;
   onClose: () => void;
@@ -66,6 +69,17 @@ export function ShiftModal({
       breaks: [...draft.breaks, { offsetMinutes, durationMinutes: SLOT_MINUTES }],
     });
   }
+
+  function toggleResponsibility(id: string) {
+    const selected = draft.responsibilityIds.includes(id)
+      ? draft.responsibilityIds.filter((value) => value !== id)
+      : [...draft.responsibilityIds, id];
+    onChange({ ...draft, responsibilityIds: selected });
+  }
+
+  const visibleResponsibilities = responsibilities.filter(
+    (duty) => !duty.archived || draft.responsibilityIds.includes(duty.id),
+  );
 
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
@@ -151,6 +165,29 @@ export function ShiftModal({
             />
             Published
           </label>
+
+          <div className="space-y-2">
+            <Label>Responsibilities</Label>
+            {visibleResponsibilities.length ? (
+              <div className="max-h-40 space-y-1.5 overflow-auto rounded-md border border-border p-2">
+                {visibleResponsibilities.map((duty) => (
+                  <label key={duty.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={draft.responsibilityIds.includes(duty.id)}
+                      onChange={() => toggleResponsibility(duty.id)}
+                    />
+                    <span>
+                      {duty.name}
+                      {duty.archived ? " (archived)" : ""}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ink/60">No responsibilities yet.</p>
+            )}
+          </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
