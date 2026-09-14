@@ -4,6 +4,7 @@ import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { SHIFT_DRAG_TYPE, type CalendarShift, type ViewBy } from "@/components/scheduling/types";
+import { beginShiftDrag, endShiftDrag } from "@/lib/scheduling/shift-drag";
 
 function BreakOverlay({ shift }: { shift: CalendarShift }) {
   const start = parseISO(shift.start).getTime();
@@ -58,10 +59,21 @@ export function ShiftCard({
         event.stopPropagation();
         onOpen(shift);
       }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+      }}
       onDragStart={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const offsetPx = event.clientX - rect.left;
+        beginShiftDrag(offsetPx);
         event.dataTransfer.setData(SHIFT_DRAG_TYPE, shift.id);
+        event.dataTransfer.setData("application/x-esp-shift-offset", String(offsetPx));
         event.dataTransfer.setData("text/plain", shift.id);
         event.dataTransfer.effectAllowed = "copyMove";
+      }}
+      onDragEnd={() => {
+        window.setTimeout(endShiftDrag, 0);
       }}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden rounded">

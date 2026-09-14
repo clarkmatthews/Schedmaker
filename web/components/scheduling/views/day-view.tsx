@@ -6,7 +6,7 @@ import { DAY_LANE_HEIGHT, DAY_ROW_PAD, laneLayout } from "@/lib/scheduling/lanes
 import {
   barStyle,
   formatSlot,
-  slotFromPercent,
+  slotFromClientX,
 } from "@/lib/scheduling/time-grid";
 import { ShiftCard } from "@/components/scheduling/shift-card";
 import {
@@ -15,6 +15,7 @@ import {
   type CalendarShift,
   type ViewBy,
 } from "@/components/scheduling/types";
+import { shiftDragGrabOffsetPx } from "@/lib/scheduling/shift-drag";
 import {
   formatHours,
   formatHoursOt,
@@ -31,6 +32,23 @@ function hourMarks(startSlot: number, endSlot: number) {
     marks.push(slot);
   }
   return marks;
+}
+
+function hourBands(startSlot: number, endSlot: number) {
+  const marks = hourMarks(startSlot, endSlot);
+  const bands: { start: number; end: number }[] = [];
+  if (marks.length === 0) {
+    if (endSlot > startSlot) bands.push({ start: startSlot, end: endSlot });
+    return bands;
+  }
+  if (marks[0]! > startSlot) {
+    bands.push({ start: startSlot, end: marks[0]! });
+  }
+  for (let index = 0; index < marks.length; index += 1) {
+    const start = marks[index]!;
+    bands.push({ start, end: marks[index + 1] ?? endSlot });
+  }
+  return bands;
 }
 
 function trackBackground(
@@ -53,15 +71,32 @@ function trackBackground(
   };
 }
 
-function slotFromEvent(
-  event: React.MouseEvent | React.DragEvent,
+function trackElement(from: HTMLElement) {
+  return from.closest("[data-day-track]") as HTMLElement | null;
+}
+
+function slotFromTrackPointer(
+  event: { clientX: number },
+  track: HTMLElement,
   startSlot: number,
   endSlot: number,
+  grabOffsetPx = 0,
 ) {
-  const target = event.currentTarget as HTMLElement;
-  const rect = target.getBoundingClientRect();
-  const pct = (event.clientX - rect.left) / rect.width;
-  return slotFromPercent(pct, startSlot, endSlot);
+  const rect = track.getBoundingClientRect();
+  return slotFromClientX(
+    event.clientX - grabOffsetPx,
+    rect.left,
+    rect.width,
+    startSlot,
+    endSlot,
+  );
+}
+
+function dropGrabOffsetPx(event: React.DragEvent) {
+  const stored = event.dataTransfer.getData("application/x-esp-shift-offset");
+  const fromData = Number(stored);
+  if (Number.isFinite(fromData) && stored !== "") return Math.max(0, fromData);
+  return shiftDragGrabOffsetPx();
 }
 
 export function DayView({
@@ -90,6 +125,7 @@ export function DayView({
   const hours = hoursForDay(hoursTemplate, day, timezone);
   const range = visibleRange(hours);
   const marks = hourMarks(range.startSlot, range.endSlot);
+  const bands = hourBands(range.startSlot, range.endSlot);
   const span = Math.max(range.endSlot - range.startSlot, 1);
   const closed = Boolean(hours?.closed);
   const hasTemplate = Boolean(hours && !hours.closed);
@@ -160,12 +196,9 @@ export function DayView({
                   {row.label}
                 </div>
                 <div
-                  className="relative flex-1 cursor-pointer hover:bg-teal/5"
+                  data-day-track
+                  className={`relative flex-1 ${closed ? "" : "cursor-pointer"}`}
                   style={{ ...background, height: layout.height }}
-                  onClick={(event) => {
-                    if (closed || event.target !== event.currentTarget) return;
-                    onCreate(day, row.id, slotFromEvent(event, range.startSlot, range.endSlot));
-                  }}
                   onDragOver={(event) => {
                     event.preventDefault();
                     event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
@@ -182,7 +215,13 @@ export function DayView({
                         day,
                         row.id,
                         event.altKey,
-                        slotFromEvent(event, range.startSlot, range.endSlot),
+                        slotFromTrackPointer(
+                          event,
+                          event.currentTarget,
+                          range.startSlot,
+                          range.endSlot,
+                          dropGrabOffsetPx(event),
+                        ),
                       );
                     }
                   }}
@@ -194,6 +233,63 @@ export function DayView({
                       style={{ left: `${((slot - range.startSlot) / span) * 100}%` }}
                     />
                   ))}
+                  {closed
+                    ? null
+                    : bands.map((band) => (
+                        <div
+                          key={`band-${band.start}`}
+                          className="group absolute inset-y-0 z-[1] hover:bg-teal/5"
+                          style={{
+                            left: `${((band.start - range.startSlot) / span) * 100}%`,
+                            width: `${((band.end - band.start) / span) * 100}%`,
+                          }}
+                          onClick={(event) => {
+                            const track = trackElement(event.currentTarget);
+                            if (!track) return;
+                            onCreate(
+                              day,
+                              row.id,
+                              slotFromTrackPointer(
+                                event,
+                                track,
+                                range.startSlot,
+                                range.endSlot,
+                              ),
+                            );
+                          }}
+                          onDragOver={(event) => {
+                            event.preventDefault();
+                            event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            const track = trackElement(event.currentTarget);
+                            if (!track) return;
+                            const shiftId =
+                              event.dataTransfer.getData(SHIFT_DRAG_TYPE) ||
+                              event.dataTransfer.getData("text/plain");
+                            if (!shiftId) return;
+                            onPlace(
+                              shiftId,
+                              day,
+                              row.id,
+                              event.altKey,
+                              slotFromTrackPointer(
+                                event,
+                                track,
+                                range.startSlot,
+                                range.endSlot,
+                                dropGrabOffsetPx(event),
+                              ),
+                            );
+                          }}
+                        >
+                          <div className="pointer-events-none hidden h-full items-center justify-center text-lg text-teal group-hover:flex">
+                            +
+                          </div>
+                        </div>
+                      ))}
                   {rowShifts.map((shift, index) => {
                     const style = barStyle(
                       new Date(shift.start),

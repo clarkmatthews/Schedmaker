@@ -84,8 +84,17 @@ export function slotFromPercent(
   rangeEndSlot = END_SLOT,
 ) {
   const span = Math.max(rangeEndSlot - rangeStartSlot, 1);
-  return Math.min(
-    rangeEndSlot - 1,
-    Math.max(rangeStartSlot, Math.round(rangeStartSlot + pct * span)),
-  );
+  const column = Math.round(pct * span);
+  return Math.min(rangeEndSlot - 1, Math.max(rangeStartSlot, rangeStartSlot + column));
+}
+
+export function slotFromClientX(
+  clientX: number,
+  trackLeft: number,
+  trackWidth: number,
+  rangeStartSlot = 0,
+  rangeEndSlot = END_SLOT,
+) {
+  if (trackWidth <= 0) return rangeStartSlot;
+  return slotFromPercent((clientX - trackLeft) / trackWidth, rangeStartSlot, rangeEndSlot);
 }
