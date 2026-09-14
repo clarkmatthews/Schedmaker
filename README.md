@@ -137,6 +137,10 @@ A 15-minute timeline with grey hours-template bands, compact shift bars, and per
 
 <img width="1204" height="694" alt="image" src="https://github.com/user-attachments/assets/106695b4-c31b-4305-9fdc-c7bd7bc0bb59" />
 
+### Rule Warnings Described
+
+<img width="1201" height="809" alt="image" src="https://github.com/user-attachments/assets/5975ec62-4f5f-418e-9cf5-73ef2b0dcb8c" />
+
 ### Scheduling settings
 
 Location state, meal-break thresholds, overtime rules, and the optional lock on historical dates.
