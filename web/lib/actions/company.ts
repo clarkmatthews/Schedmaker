@@ -91,6 +91,7 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
     const laborState = String(formData.get("laborState") ?? "").trim().toUpperCase();
     let mealRules: Prisma.InputJsonValue | undefined;
     let overtimeRules: Prisma.InputJsonValue | undefined;
+    let minorRules: Prisma.InputJsonValue | undefined;
     const rawRules = String(formData.get("mealRules") ?? "");
     if (rawRules) {
       try {
@@ -107,6 +108,14 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
         return { error: "Overtime rules could not be saved." };
       }
     }
+    const rawMinor = String(formData.get("minorRules") ?? "");
+    if (rawMinor) {
+      try {
+        minorRules = JSON.parse(rawMinor) as Prisma.InputJsonValue;
+      } catch {
+        return { error: "Minor rules could not be saved." };
+      }
+    }
     await prisma.company.update({
       where: { id: companyId },
       data: {
@@ -114,6 +123,7 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
         laborState,
         ...(mealRules !== undefined ? { mealRules } : {}),
         ...(overtimeRules !== undefined ? { overtimeRules } : {}),
+        ...(minorRules !== undefined ? { minorRules } : {}),
       },
     });
     revalidatePath(`/app/companies/${companyId}`);

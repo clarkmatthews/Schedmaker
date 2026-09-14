@@ -12,8 +12,22 @@ import {
   type MealRules,
   type OvertimeRules,
 } from "@/lib/scheduling/labor-rules";
+import {
+  minorRulesForState,
+  parseMinorRules,
+  type MinorAgeBand,
+  type MinorRules,
+} from "@/lib/scheduling/minor-rules";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
+
+function minutesToHours(minutes: number) {
+  return Math.round((minutes / 60) * 100) / 100;
+}
+
+function hoursToMinutes(hours: number) {
+  return Math.round(hours * 60);
+}
 
 export function SchedulingSettings({
   companyId,
@@ -22,6 +36,7 @@ export function SchedulingSettings({
   laborState,
   mealRules,
   overtimeRules,
+  minorRules,
 }: {
   companyId: string;
   companyName: string;
@@ -29,6 +44,7 @@ export function SchedulingSettings({
   laborState: string;
   mealRules: unknown;
   overtimeRules: unknown;
+  minorRules: unknown;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +56,9 @@ export function SchedulingSettings({
   const [otRules, setOtRules] = useState<OvertimeRules>(
     parseOvertimeRules(overtimeRules) ?? overtimeRulesForState(laborState),
   );
+  const [minor, setMinor] = useState<MinorRules>(
+    parseMinorRules(minorRules) ?? minorRulesForState(laborState),
+  );
 
   function updateRule<K extends keyof MealRules>(key: K, value: MealRules[K]) {
     setRules((current) => ({ ...current, [key]: value }));
@@ -47,6 +66,17 @@ export function SchedulingSettings({
 
   function updateOt<K extends keyof OvertimeRules>(key: K, value: OvertimeRules[K]) {
     setOtRules((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateMinor<K extends keyof MinorRules>(key: K, value: MinorRules[K]) {
+    setMinor((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateBand(index: number, patch: Partial<MinorAgeBand>) {
+    setMinor((current) => ({
+      ...current,
+      bands: current.bands.map((band, i) => (i === index ? { ...band, ...patch } : band)),
+    }));
   }
 
   return (
@@ -57,6 +87,7 @@ export function SchedulingSettings({
         formData.set("laborState", state);
         formData.set("mealRules", JSON.stringify(rules));
         formData.set("overtimeRules", JSON.stringify(otRules));
+        formData.set("minorRules", JSON.stringify(minor));
         const result = await updateSchedulingRulesAction(companyId, formData);
         if (result.error) setError(result.error);
         else {
@@ -95,8 +126,8 @@ export function SchedulingSettings({
         <div>
           <h2 className="font-medium text-ink">Location state</h2>
           <p className="mt-1 text-sm text-muted">
-            Determines which labor pack is suggested for meal and overtime rules.
-            Minor rules will use this same state later.
+            Determines which labor pack is suggested for meal, overtime, and minor
+            rules.
           </p>
         </div>
         <div>
@@ -109,6 +140,7 @@ export function SchedulingSettings({
               setState(next);
               setRules(mealRulesForState(next));
               setOtRules(overtimeRulesForState(next));
+              setMinor(minorRulesForState(next));
             }}
           >
             {US_STATES.map((item) => (
@@ -318,12 +350,186 @@ export function SchedulingSettings({
         </label>
       </div>
 
-      <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted">
-        <p className="font-medium text-ink">Coming next</p>
-        <p className="mt-1">
-          Minor hour and curfew rules will use this location state and the same
-          warning icon on the schedule.
-        </p>
+      <div className="space-y-3 rounded-md border border-border p-4">
+        <div>
+          <h2 className="font-medium text-ink">Minor rules</h2>
+          <p className="mt-1 text-sm text-muted">
+            Employees under 18 with a date of birth on file are checked against
+            these hour and curfew limits. School days are weekdays inside the
+            school-year range. Weekends are always non-school days.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={minor.enabled}
+            onChange={(event) => updateMinor("enabled", event.target.checked)}
+          />
+          Warn when minor hour or curfew rules are broken
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="schoolYearStart">School year start (MM-DD)</Label>
+            <Input
+              id="schoolYearStart"
+              value={minor.schoolYearStart}
+              placeholder="08-15"
+              onChange={(event) => updateMinor("schoolYearStart", event.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="schoolYearEnd">School year end (MM-DD)</Label>
+            <Input
+              id="schoolYearEnd"
+              value={minor.schoolYearEnd}
+              placeholder="06-05"
+              onChange={(event) => updateMinor("schoolYearEnd", event.target.value)}
+            />
+          </div>
+        </div>
+        {minor.bands.map((band, index) => (
+          <div key={`${band.minAge}-${band.maxAge}`} className="space-y-3 border-t border-border pt-3">
+            <h3 className="text-sm font-medium text-ink">
+              Ages {band.minAge}–{band.maxAge}
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor={`schoolDayHours-${index}`}>School day hours</Label>
+                <Input
+                  id={`schoolDayHours-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={band.schoolDayHours}
+                  onChange={(event) =>
+                    updateBand(index, { schoolDayHours: Number(event.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`nonSchoolDayHours-${index}`}>Non-school day hours</Label>
+                <Input
+                  id={`nonSchoolDayHours-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={band.nonSchoolDayHours}
+                  onChange={(event) =>
+                    updateBand(index, { nonSchoolDayHours: Number(event.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`schoolWeekHours-${index}`}>School-week hours</Label>
+                <Input
+                  id={`schoolWeekHours-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={band.schoolWeekHours}
+                  onChange={(event) =>
+                    updateBand(index, { schoolWeekHours: Number(event.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`nonSchoolWeekHours-${index}`}>Non-school week hours</Label>
+                <Input
+                  id={`nonSchoolWeekHours-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={band.nonSchoolWeekHours}
+                  onChange={(event) =>
+                    updateBand(index, { nonSchoolWeekHours: Number(event.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`earliestStart-${index}`}>Earliest start (hours from midnight)</Label>
+                <Input
+                  id={`earliestStart-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  value={minutesToHours(band.earliestStartMinutes)}
+                  onChange={(event) =>
+                    updateBand(index, {
+                      earliestStartMinutes: hoursToMinutes(Number(event.target.value)),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor={`latestEnd-${index}`}>Latest end (hours from midnight)</Label>
+                <Input
+                  id={`latestEnd-${index}`}
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  value={minutesToHours(band.latestEndMinutes)}
+                  onChange={(event) =>
+                    updateBand(index, {
+                      latestEndMinutes: hoursToMinutes(Number(event.target.value)),
+                    })
+                  }
+                />
+              </div>
+              {band.summerLatestEndMinutes != null ? (
+                <div>
+                  <Label htmlFor={`summerLatest-${index}`}>
+                    Summer latest end (June 1–Labor Day)
+                  </Label>
+                  <Input
+                    id={`summerLatest-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    value={minutesToHours(band.summerLatestEndMinutes)}
+                    onChange={(event) =>
+                      updateBand(index, {
+                        summerLatestEndMinutes: hoursToMinutes(Number(event.target.value)),
+                      })
+                    }
+                  />
+                </div>
+              ) : null}
+              {band.latestEndBeforeNonSchoolMinutes != null ? (
+                <div>
+                  <Label htmlFor={`latestNonSchool-${index}`}>
+                    Latest end before a non-school day (24.5 = 12:30 a.m.)
+                  </Label>
+                  <Input
+                    id={`latestNonSchool-${index}`}
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    value={minutesToHours(band.latestEndBeforeNonSchoolMinutes)}
+                    onChange={(event) =>
+                      updateBand(index, {
+                        latestEndBeforeNonSchoolMinutes: hoursToMinutes(
+                          Number(event.target.value),
+                        ),
+                      })
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(band.dayBeforeNonSchoolUsesNonSchoolHours)}
+                onChange={(event) =>
+                  updateBand(index, {
+                    dayBeforeNonSchoolUsesNonSchoolHours: event.target.checked,
+                  })
+                }
+              />
+              Allow non-school-day hours on the day before a non-school day
+            </label>
+          </div>
+        ))}
       </div>
 
       <FieldError message={error} />

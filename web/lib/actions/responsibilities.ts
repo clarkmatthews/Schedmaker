@@ -6,6 +6,25 @@ import { ActionError, requireCompanyAdmin } from "@/lib/permissions";
 
 function revalidateSettings(companyId: string) {
   revalidatePath(`/app/companies/${companyId}/settings`);
+  revalidatePath(`/app/companies/${companyId}`, "layout");
+}
+
+export async function setResponsibilitiesEnabledAction(
+  companyId: string,
+  enabled: boolean,
+) {
+  try {
+    await requireCompanyAdmin(companyId);
+    await prisma.company.update({
+      where: { id: companyId },
+      data: { responsibilitiesEnabled: enabled },
+    });
+    revalidateSettings(companyId);
+    return { ok: true as const };
+  } catch (error) {
+    if (error instanceof ActionError) return { error: error.message };
+    return { error: "Could not update responsibilities setting." };
+  }
 }
 
 export async function createResponsibilityAction(companyId: string, formData: FormData) {

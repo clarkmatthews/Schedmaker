@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createResponsibilityAction,
+  setResponsibilitiesEnabledAction,
   updateResponsibilityAction,
 } from "@/lib/actions/responsibilities";
 import { Button } from "@/components/ui/button";
@@ -18,13 +19,16 @@ type Duty = {
 
 export function ResponsibilitiesSettings({
   companyId,
+  enabled,
   responsibilities,
 }: {
   companyId: string;
+  enabled: boolean;
   responsibilities: Duty[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [on, setOn] = useState(enabled);
 
   async function save(id: string, formData: FormData) {
     const result = await updateResponsibilityAction(companyId, id, formData);
@@ -37,6 +41,38 @@ export function ResponsibilitiesSettings({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-md border border-border p-4">
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={on}
+            onChange={async (event) => {
+              const next = event.target.checked;
+              setOn(next);
+              const result = await setResponsibilitiesEnabledAction(companyId, next);
+              if (result.error) {
+                setOn(!next);
+                setError(result.error);
+              } else {
+                setError(null);
+                router.refresh();
+              }
+            }}
+          />
+          <span>
+            <span className="block font-medium text-ink">Use responsibilities on shifts</span>
+            <span className="mt-1 block text-muted">
+              When this is off, duties are hidden on the create and edit shift
+              forms. Existing assignments stay in the database.
+            </span>
+          </span>
+        </label>
+      </div>
+      <FieldError message={error} />
+
+      {on ? (
+        <>
       <div className="space-y-3">
         {responsibilities.map((duty) => (
           <div
@@ -105,6 +141,12 @@ export function ResponsibilitiesSettings({
         <FieldError message={error} />
         <Button type="submit">Add</Button>
       </form>
+        </>
+      ) : (
+        <p className="text-sm text-muted">
+          Turn this on to manage duties and assign them on shifts.
+        </p>
+      )}
     </div>
   );
 }

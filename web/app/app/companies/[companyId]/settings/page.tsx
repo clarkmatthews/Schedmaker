@@ -88,6 +88,7 @@ export default async function CompanySettingsPage({
               laborState={company.laborState}
               mealRules={company.mealRules}
               overtimeRules={company.overtimeRules}
+              minorRules={company.minorRules}
             />
           ),
           mms: (
@@ -122,6 +123,7 @@ export default async function CompanySettingsPage({
           responsibilities: (
             <ResponsibilitiesSettings
               companyId={companyId}
+              enabled={company.responsibilitiesEnabled}
               responsibilities={company.responsibilities}
             />
           ),

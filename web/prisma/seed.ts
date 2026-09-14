@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, setHours, startOfWeek } from "date-fns";
 import { CA_MEAL_RULES, CA_OVERTIME_RULES } from "../lib/scheduling/labor-rules";
+import { CA_MINOR_RULES } from "../lib/scheduling/minor-rules";
 
 const prisma = new PrismaClient();
 
@@ -75,6 +76,7 @@ async function main() {
         laborState: "CA",
         mealRules: CA_MEAL_RULES,
         overtimeRules: CA_OVERTIME_RULES,
+        minorRules: CA_MINOR_RULES,
       },
     }));
 
@@ -84,6 +86,7 @@ async function main() {
       laborState: "CA",
       mealRules: CA_MEAL_RULES,
       overtimeRules: CA_OVERTIME_RULES,
+      minorRules: CA_MINOR_RULES,
     },
   });
 

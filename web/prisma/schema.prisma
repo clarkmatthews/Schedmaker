@@ -16,6 +16,7 @@ model User {
   photoUrl           String   @default("")
   confirmedAndActive Boolean  @default(false)
   support            Boolean  @default(false)
+  birthDate          DateTime? @db.Date
   memberSince        DateTime @default(now())
   icalToken          String   @unique @default(uuid())
 
@@ -50,11 +51,13 @@ model Company {
   laborState             String  @default("")
   mealRules              Json?
   overtimeRules          Json?
+  minorRules             Json?
   mmsEnabled             Boolean @default(false)
   mmsAccountSid          String  @default("")
   mmsAuthToken           String  @default("")
   mmsFromNumber          String  @default("")
   mmsManagerPhone        String  @default("")
+  responsibilitiesEnabled Boolean @default(true)
 
   teams            Team[]
   directory        Directory[]
@@ -192,6 +195,7 @@ model Directory {
   internalId       String  @default("")
   deactivated      Boolean @default(false)
   mealBreakWaiver  Boolean @default(false)
+  hourlyRate       Decimal? @db.Decimal(8, 2)
   company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 

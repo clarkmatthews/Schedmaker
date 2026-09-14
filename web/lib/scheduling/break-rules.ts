@@ -46,6 +46,58 @@ export function firstOpenBreakOffset(
   return null;
 }
 
+function breakFits(
+  offsetMinutes: number,
+  durationMinutes: number,
+  breaks: BreakInputLike[],
+  shiftMinutes: number,
+) {
+  if (offsetMinutes < 0 || offsetMinutes + durationMinutes > shiftMinutes) return false;
+  const end = offsetMinutes + durationMinutes;
+  return !breaks.some(
+    (item) =>
+      offsetMinutes < item.offsetMinutes + item.durationMinutes &&
+      end > item.offsetMinutes,
+  );
+}
+
+export function defaultBreakPlacement(
+  breaks: BreakInputLike[],
+  shiftMinutes: number,
+  slotMinutes = SLOT_MINUTES,
+): { offsetMinutes: number; durationMinutes: number } | null {
+  if (shiftMinutes < 30) {
+    const offsetMinutes = firstOpenBreakOffset(breaks, slotMinutes, shiftMinutes);
+    if (offsetMinutes == null) return null;
+    return { offsetMinutes, durationMinutes: slotMinutes };
+  }
+
+  const snap = (minutes: number) => Math.round(minutes / slotMinutes) * slotMinutes;
+  const desired = Math.max(0, Math.min(snap((shiftMinutes - 30) / 2), shiftMinutes - 30));
+
+  if (breakFits(desired, 30, breaks, shiftMinutes)) {
+    return { offsetMinutes: desired, durationMinutes: 30 };
+  }
+
+  const maxOffset = shiftMinutes - 30;
+  for (let delta = slotMinutes; delta <= maxOffset; delta += slotMinutes) {
+    const left = desired - delta;
+    const right = desired + delta;
+    if (breakFits(left, 30, breaks, shiftMinutes)) {
+      return { offsetMinutes: left, durationMinutes: 30 };
+    }
+    if (breakFits(right, 30, breaks, shiftMinutes)) {
+      return { offsetMinutes: right, durationMinutes: 30 };
+    }
+  }
+
+  const thirty = firstOpenBreakOffset(breaks, 30, shiftMinutes);
+  if (thirty != null) return { offsetMinutes: thirty, durationMinutes: 30 };
+  const fifteen = firstOpenBreakOffset(breaks, slotMinutes, shiftMinutes);
+  if (fifteen == null) return null;
+  return { offsetMinutes: fifteen, durationMinutes: slotMinutes };
+}
+
 export { MAX_BREAK_SLOTS };
 
 // Later: BreakCoverage { breakId, responsibilityId, coveringUserId }

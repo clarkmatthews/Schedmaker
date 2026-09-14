@@ -76,6 +76,24 @@ export function formatHours(ms: number) {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
+export function formatCurrencyUsd(amount: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+}
+
+export function estimatedLaborUsd(
+  shifts: Array<{ userId?: string | null; regularMs?: number; otMs?: number }>,
+  rates: Record<string, number>,
+) {
+  return shifts.reduce((sum, shift) => {
+    if (!shift.userId) return sum;
+    const rate = rates[shift.userId];
+    if (!rate || !Number.isFinite(rate) || rate <= 0) return sum;
+    const regularHours = (shift.regularMs ?? 0) / 3_600_000;
+    const otHours = (shift.otMs ?? 0) / 3_600_000;
+    return sum + regularHours * rate + otHours * rate * 1.5;
+  }, 0);
+}
+
 export function formatHoursOt(regularMs: number, otMs: number, showOt: boolean) {
   if (!showOt) return formatHours(regularMs + otMs);
   return `${formatHours(regularMs)}/${formatHours(otMs)}`;

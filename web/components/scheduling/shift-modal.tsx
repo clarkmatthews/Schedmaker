@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { FieldError, Label, Select } from "@/components/ui/input";
 import { BreakOffsetSelect, TimeSelect } from "@/components/scheduling/time-select";
 import type { BreakInput } from "@/lib/actions/shifts";
-import { breaksOverlap, firstOpenBreakOffset } from "@/lib/scheduling/break-rules";
+import { breaksOverlap, defaultBreakPlacement } from "@/lib/scheduling/break-rules";
 import { MAX_BREAK_SLOTS, SLOT_MINUTES } from "@/lib/scheduling/time-grid";
+import { formatHours } from "@/lib/scheduling/totals";
 import type { CalendarJob, CalendarResponsibility, CalendarWorker } from "@/components/scheduling/types";
 
 export type ShiftDraft = {
@@ -27,6 +28,7 @@ export function ShiftModal({
   workers,
   jobs,
   responsibilities,
+  responsibilitiesEnabled = true,
   error,
   onChange,
   onClose,
@@ -39,6 +41,7 @@ export function ShiftModal({
   workers: CalendarWorker[];
   jobs: CalendarJob[];
   responsibilities: CalendarResponsibility[];
+  responsibilitiesEnabled?: boolean;
   error: string | null;
   onChange: (draft: ShiftDraft) => void;
   onClose: () => void;
@@ -52,6 +55,8 @@ export function ShiftModal({
       : 96 - draft.startSlot + draft.stopSlot;
   const maxBreakSlots = Math.min(MAX_BREAK_SLOTS, Math.max(1, shiftSlots - 1));
   const shiftMinutes = shiftSlots * SLOT_MINUTES;
+  const breakMinutes = draft.breaks.reduce((sum, item) => sum + item.durationMinutes, 0);
+  const onClockMinutes = Math.max(0, shiftMinutes - breakMinutes);
   const overlap = breaksOverlap(draft.breaks);
 
   function toggleDay(day: string) {
@@ -62,11 +67,11 @@ export function ShiftModal({
   }
 
   function addBreak() {
-    const offsetMinutes = firstOpenBreakOffset(draft.breaks, SLOT_MINUTES, shiftMinutes);
-    if (offsetMinutes == null) return;
+    const placement = defaultBreakPlacement(draft.breaks, shiftMinutes);
+    if (!placement) return;
     onChange({
       ...draft,
-      breaks: [...draft.breaks, { offsetMinutes, durationMinutes: SLOT_MINUTES }],
+      breaks: [...draft.breaks, placement],
     });
   }
 
@@ -127,6 +132,12 @@ export function ShiftModal({
               />
             </div>
           </div>
+          <p className="text-sm text-muted">
+            {formatHours(shiftMinutes * 60_000)} hours scheduled
+            {breakMinutes > 0
+              ? ` (${formatHours(onClockMinutes * 60_000)} on the clock)`
+              : ""}
+          </p>
           <div>
             <Label htmlFor="userId">Employee</Label>
             <Select
@@ -156,37 +167,6 @@ export function ShiftModal({
                 </option>
               ))}
             </Select>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.published}
-              onChange={(e) => onChange({ ...draft, published: e.target.checked })}
-            />
-            Published
-          </label>
-
-          <div className="space-y-2">
-            <Label>Responsibilities</Label>
-            {visibleResponsibilities.length ? (
-              <div className="max-h-40 space-y-1.5 overflow-auto rounded-md border border-border p-2">
-                {visibleResponsibilities.map((duty) => (
-                  <label key={duty.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={draft.responsibilityIds.includes(duty.id)}
-                      onChange={() => toggleResponsibility(duty.id)}
-                    />
-                    <span>
-                      {duty.name}
-                      {duty.archived ? " (archived)" : ""}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-ink/60">No responsibilities yet.</p>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -249,6 +229,40 @@ export function ShiftModal({
               </div>
             ))}
           </div>
+
+          {responsibilitiesEnabled ? (
+            <div className="space-y-2">
+              <Label>Responsibilities</Label>
+              {visibleResponsibilities.length ? (
+                <div className="max-h-40 space-y-1.5 overflow-auto rounded-md border border-border p-2">
+                  {visibleResponsibilities.map((duty) => (
+                    <label key={duty.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={draft.responsibilityIds.includes(duty.id)}
+                        onChange={() => toggleResponsibility(duty.id)}
+                      />
+                      <span>
+                        {duty.name}
+                        {duty.archived ? " (archived)" : ""}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-ink/60">No responsibilities yet.</p>
+              )}
+            </div>
+          ) : null}
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.published}
+              onChange={(e) => onChange({ ...draft, published: e.target.checked })}
+            />
+            Published
+          </label>
 
           {overlap ? (
             <p className="text-sm text-red-600">Breaks cannot overlap. Move or shorten one first.</p>

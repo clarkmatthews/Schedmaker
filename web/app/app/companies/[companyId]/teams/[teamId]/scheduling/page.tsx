@@ -10,6 +10,7 @@ import {
   parseMealRules,
   parseOvertimeRules,
 } from "@/lib/scheduling/labor-rules";
+import { evaluateMinorWarnings, parseMinorRules } from "@/lib/scheduling/minor-rules";
 
 export default async function SchedulingPage({
   params,
@@ -43,6 +44,7 @@ export default async function SchedulingPage({
 
   const mealRules = parseMealRules(team.company.mealRules);
   const overtimeRules = parseOvertimeRules(team.company.overtimeRules);
+  const minorRules = parseMinorRules(team.company.minorRules);
   const hoursTemplate = team.company.hoursTemplate
     ? toHoursTemplateView(team.company.hoursTemplate)
     : null;
@@ -90,6 +92,15 @@ export default async function SchedulingPage({
         archived: duty.archived,
       }))}
       overtimeEnabled={Boolean(overtimeRules?.enabled)}
+      responsibilitiesEnabled={team.company.responsibilitiesEnabled}
+      hourlyRates={Object.fromEntries(
+        team.workers.flatMap((worker) => {
+          const rate = worker.user.directoryEntries[0]?.hourlyRate;
+          if (rate == null) return [];
+          const value = Number(rate);
+          return Number.isFinite(value) && value > 0 ? [[worker.userId, value] as const] : [];
+        }),
+      )}
       shifts={(() => {
         const mapped = shifts.map((shift) => {
           const assignedDeactivated = Boolean(
@@ -117,16 +128,28 @@ export default async function SchedulingPage({
           const waivedFirst =
             !assignedDeactivated &&
             Boolean(shift.user?.directoryEntries.some((entry) => entry.mealBreakWaiver));
-          return {
-            ...item,
-            warnings: evaluateMealWarnings(item, mealRules, {
-              waivedFirst,
-              timezone: team.timezone,
-            }),
-          };
+          const birthDate = assignedDeactivated ? null : (shift.user?.birthDate ?? null);
+          const mealWarnings = evaluateMealWarnings(item, mealRules, {
+            waivedFirst,
+            timezone: team.timezone,
+          });
+          return { item, mealWarnings, birthDate };
         });
-        const splits = allocateOvertime(mapped, overtimeRules, team.timezone);
-        return mapped
+        const weekShifts = mapped.map((row) => row.item);
+        const withWarnings = mapped.map(({ item, mealWarnings, birthDate }) => ({
+          ...item,
+          warnings: [
+            ...mealWarnings,
+            ...evaluateMinorWarnings(item, weekShifts, minorRules, {
+              birthDate,
+              timezone: team.timezone,
+              weekStart: weekBounds.start,
+              weekEnd: weekBounds.end,
+            }),
+          ],
+        }));
+        const splits = allocateOvertime(withWarnings, overtimeRules, team.timezone);
+        return withWarnings
           .filter((shift) => {
             const start = new Date(shift.start).getTime();
             return start >= bounds.start.getTime() && start < bounds.end.getTime();

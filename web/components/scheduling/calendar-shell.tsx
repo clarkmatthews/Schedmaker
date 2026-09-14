@@ -49,6 +49,8 @@ export function CalendarShell({
   responsibilities,
   hoursTemplate,
   overtimeEnabled = false,
+  responsibilitiesEnabled = true,
+  hourlyRates = {},
 }: {
   companyId: string;
   teamId: string;
@@ -64,6 +66,8 @@ export function CalendarShell({
   responsibilities: CalendarResponsibility[];
   hoursTemplate: HoursTemplateView | null;
   overtimeEnabled?: boolean;
+  responsibilitiesEnabled?: boolean;
+  hourlyRates?: Record<string, number>;
 }) {
   const router = useRouter();
   const date = parseISO(dateIso);
@@ -331,7 +335,11 @@ export function CalendarShell({
         />
       )}
 
-      <LaborSummary shifts={shifts} overtimeEnabled={overtimeEnabled} />
+      <LaborSummary
+        shifts={shifts}
+        overtimeEnabled={overtimeEnabled}
+        hourlyRates={hourlyRates}
+      />
 
       {draft ? (
         <ShiftModal
@@ -340,6 +348,7 @@ export function CalendarShell({
           workers={workers}
           jobs={jobs}
           responsibilities={responsibilities}
+          responsibilitiesEnabled={responsibilitiesEnabled}
           error={error}
           onChange={setDraft}
           onClose={() => setDraft(null)}

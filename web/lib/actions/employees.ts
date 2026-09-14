@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { parseBirthDate, parseHourlyRate } from "@/lib/employees";
 import { emptyToNull } from "@/lib/utils";
 import { issueEmailToken } from "@/lib/tokens";
 import { notifyActivation, notifyOnboardWorker } from "@/lib/notifications";
@@ -46,10 +47,22 @@ export async function createEmployeeAction(companyId: string, formData: FormData
     const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
     const internalId = String(formData.get("internalId") ?? "").trim();
     const teamId = String(formData.get("teamId") ?? "").trim();
+    const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+    const birthDate = birthDateRaw ? parseBirthDate(birthDateRaw) : null;
+    if (birthDateRaw && !birthDate) return { error: "Enter a valid date of birth." };
+    const mealBreakWaiver = String(formData.get("mealBreakWaiver") ?? "") === "on";
+    const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
+    if (parsedRate.error) return { error: parsedRate.error };
 
     if (!email) return { error: "Email is required." };
 
     const { user, created } = await getOrCreateUser({ email, name, phoneNumber });
+    if (birthDate) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { birthDate },
+      });
+    }
 
     const exists = await prisma.directory.findUnique({
       where: { companyId_userId: { companyId, userId: user.id } },
@@ -59,7 +72,13 @@ export async function createEmployeeAction(companyId: string, formData: FormData
     }
 
     await prisma.directory.create({
-      data: { companyId, userId: user.id, internalId },
+      data: {
+        companyId,
+        userId: user.id,
+        internalId,
+        mealBreakWaiver,
+        hourlyRate: parsedRate.rate,
+      },
     });
 
     if (teamId) {
@@ -86,6 +105,7 @@ export async function createEmployeeAction(companyId: string, formData: FormData
     await notifyOnboardWorker(companyId, user.id);
 
     revalidatePath(`/app/companies/${companyId}/employees`);
+    revalidatePath(`/app/companies/${companyId}`, "layout");
     return { ok: true as const, userId: user.id };
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };
@@ -107,11 +127,20 @@ export async function updateEmployeeAction(
     if (!target || !directory) return { error: "Employee not found." };
 
     const internalId = String(formData.get("internalId") ?? "").trim();
+    const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
+    const birthDate = birthDateRaw ? parseBirthDate(birthDateRaw) : null;
+    if (birthDateRaw && !birthDate) return { error: "Enter a valid date of birth." };
+    const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
+    if (parsedRate.error) return { error: parsedRate.error };
+
     await prisma.directory.update({
       where: { companyId_userId: { companyId, userId } },
-      data: { internalId },
+      data: { internalId, hourlyRate: parsedRate.rate },
     });
 
+    const userUpdate: { birthDate: Date | null; name?: string; email?: string; phoneNumber?: string | null } = {
+      birthDate,
+    };
     if (!target.confirmedAndActive) {
       const name = String(formData.get("name") ?? "").trim();
       const email = String(formData.get("email") ?? "")
@@ -119,13 +148,17 @@ export async function updateEmployeeAction(
         .toLowerCase();
       const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
       if (!email) return { error: "Email is required." };
-      await prisma.user.update({
-        where: { id: userId },
-        data: { name, email, phoneNumber },
-      });
+      userUpdate.name = name;
+      userUpdate.email = email;
+      userUpdate.phoneNumber = phoneNumber;
     }
+    await prisma.user.update({
+      where: { id: userId },
+      data: userUpdate,
+    });
 
     revalidatePath(`/app/companies/${companyId}/employees`);
+    revalidatePath(`/app/companies/${companyId}`, "layout");
     return { ok: true as const };
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };

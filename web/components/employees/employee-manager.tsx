@@ -137,6 +137,31 @@ export function EmployeeManager({
               <Input id="internalId" name="internalId" />
             </div>
             <div>
+              <Label htmlFor="hourlyRate">Hourly rate</Label>
+              <Input
+                id="hourlyRate"
+                name="hourlyRate"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="birthDate">Date of birth</Label>
+              <Input id="birthDate" name="birthDate" type="date" />
+            </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="mealBreakWaiver" className="mt-1" />
+              <span>
+                Signed a first meal-break waiver
+                <span className="mt-0.5 block text-muted">
+                  Suppresses the first meal warning only when the shift is within
+                  the location’s waiver limit (6 hours in California).
+                </span>
+              </span>
+            </label>
+            <div>
               <Label htmlFor="teamId">Team</Label>
               <Select id="teamId" name="teamId" defaultValue={teams[0]?.id ?? ""}>
                 <option value="">None yet</option>
@@ -157,6 +182,7 @@ export function EmployeeManager({
           </form>
         ) : selected ? (
           <form
+            key={selected.userId}
             className="space-y-3"
             action={async (formData) => {
               const result = await updateEmployeeAction(
@@ -205,6 +231,27 @@ export function EmployeeManager({
             <div>
               <Label htmlFor="internalId">Internal ID</Label>
               <Input id="internalId" name="internalId" defaultValue={selected.internalId} />
+            </div>
+            <div>
+              <Label htmlFor="hourlyRate">Hourly rate</Label>
+              <Input
+                id="hourlyRate"
+                name="hourlyRate"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                defaultValue={selected.hourlyRate ?? ""}
+              />
+            </div>
+            <div>
+              <Label htmlFor="birthDate">Date of birth</Label>
+              <Input
+                id="birthDate"
+                name="birthDate"
+                type="date"
+                defaultValue={selected.birthDate ?? ""}
+              />
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
