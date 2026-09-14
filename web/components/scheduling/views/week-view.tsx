@@ -21,6 +21,8 @@ export function WeekView({
   onPlace,
   onSelectDay,
   overtimeEnabled = false,
+  copyLastTitle,
+  onCopyLast,
 }: {
   days: Date[];
   rows: CalendarRow[];
@@ -32,6 +34,8 @@ export function WeekView({
   onPlace: (shiftId: string, day: Date, rowId: string, copy: boolean) => void;
   onSelectDay: (day: Date) => void;
   overtimeEnabled?: boolean;
+  copyLastTitle?: string;
+  onCopyLast?: () => void;
 }) {
   const dayTotals = days.map((day) => {
     const shifts = rows.flatMap((row) => shiftsFor(row.id, day));
@@ -50,7 +54,31 @@ export function WeekView({
       <table className="min-w-full border-collapse text-sm">
         <thead>
           <tr className="bg-ink text-white">
-            <th className="sticky left-0 z-20 bg-ink px-3 py-2 text-left"> </th>
+            <th className="sticky left-0 z-20 bg-ink px-2 py-2 text-left">
+              {onCopyLast ? (
+                <button
+                  type="button"
+                  title={copyLastTitle}
+                  aria-label={copyLastTitle}
+                  className="rounded p-1 text-white hover:bg-white/10"
+                  onClick={onCopyLast}
+                >
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect width="13" height="13" x="9" y="9" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              ) : null}
+            </th>
             {days.map((day) => (
               <th key={day.toISOString()} className="px-1 py-1 font-medium">
                 <button

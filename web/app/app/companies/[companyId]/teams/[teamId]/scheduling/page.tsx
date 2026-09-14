@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { getCompanyAccess } from "@/lib/permissions";
 import { dayRange, parseDateParam, weekRange } from "@/lib/scheduling/range";
 import { parseView } from "@/lib/scheduling/views";
 import { CalendarShell } from "@/components/scheduling/calendar-shell";
@@ -21,6 +23,10 @@ export default async function SchedulingPage({
 }) {
   const { companyId, teamId } = await params;
   const { view: viewParam, date: dateParam, week } = await searchParams;
+  const session = await auth();
+  const access = session?.user?.id
+    ? await getCompanyAccess(session.user.id, companyId)
+    : { admin: false, support: false };
   const team = await prisma.team.findFirst({
     where: { id: teamId, companyId },
     include: {
@@ -91,6 +97,7 @@ export default async function SchedulingPage({
         name: duty.name,
         archived: duty.archived,
       }))}
+      isAdmin={Boolean(access.admin || access.support)}
       overtimeEnabled={Boolean(overtimeRules?.enabled)}
       responsibilitiesEnabled={team.company.responsibilitiesEnabled}
       hourlyRates={Object.fromEntries(

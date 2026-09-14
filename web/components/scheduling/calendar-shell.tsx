@@ -6,6 +6,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { useRouter } from "next/navigation";
 import {
   bulkPublishShiftsAction,
+  copyLastPeriodAction,
   copyShiftAction,
   createShiftsAction,
   deleteShiftAction,
@@ -56,6 +57,7 @@ export function CalendarShell({
   overtimeEnabled = false,
   responsibilitiesEnabled = true,
   hourlyRates = {},
+  isAdmin = false,
 }: {
   companyId: string;
   teamId: string;
@@ -73,6 +75,7 @@ export function CalendarShell({
   overtimeEnabled?: boolean;
   responsibilitiesEnabled?: boolean;
   hourlyRates?: Record<string, number>;
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const date = parseISO(dateIso);
@@ -81,6 +84,8 @@ export function CalendarShell({
   const [viewBy, setViewBy] = useState<ViewBy>("employee");
   const [draft, setDraft] = useState<ShiftDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copyConfirmOpen, setCopyConfirmOpen] = useState(false);
+  const [copyPending, setCopyPending] = useState(false);
 
   const allPublished = shifts.length > 0 && shifts.every((s) => s.published);
 
@@ -243,6 +248,32 @@ export function CalendarShell({
     view === "day"
       ? format(date, "EEEE, MMM d, yyyy")
       : `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d, yyyy")}`;
+  const copyLastTitle = view === "day" ? "Copy last week same day" : "Copy last week";
+  const copyConfirmMessage =
+    view === "day"
+      ? "Are you sure you want to clear and replace this day?"
+      : "Are you sure you want to clear and replace this week?";
+
+  async function confirmCopyLast() {
+    setCopyPending(true);
+    try {
+      const result = await copyLastPeriodAction(
+        companyId,
+        teamId,
+        rangeStartIso,
+        rangeEndIso,
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
+      router.refresh();
+    } finally {
+      setCopyPending(false);
+      setCopyConfirmOpen(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -344,6 +375,8 @@ export function CalendarShell({
           onPlace={place}
           hoursTemplate={hoursTemplate}
           overtimeEnabled={overtimeEnabled}
+          copyLastTitle={isAdmin ? copyLastTitle : undefined}
+          onCopyLast={isAdmin ? () => setCopyConfirmOpen(true) : undefined}
         />
       ) : (
         <WeekView
@@ -357,6 +390,8 @@ export function CalendarShell({
           onPlace={place}
           onSelectDay={(day) => goTo("day", day)}
           overtimeEnabled={overtimeEnabled}
+          copyLastTitle={isAdmin ? copyLastTitle : undefined}
+          onCopyLast={isAdmin ? () => setCopyConfirmOpen(true) : undefined}
         />
       )}
 
@@ -365,6 +400,27 @@ export function CalendarShell({
         overtimeEnabled={overtimeEnabled}
         hourlyRates={hourlyRates}
       />
+
+      {copyConfirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-5">
+            <p className="text-sm font-medium text-ink">{copyConfirmMessage}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={copyPending}
+                onClick={() => setCopyConfirmOpen(false)}
+              >
+                No
+              </Button>
+              <Button type="button" disabled={copyPending} onClick={confirmCopyLast}>
+                {copyPending ? "Copying…" : "Yes"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {draft ? (
         <ShiftModal

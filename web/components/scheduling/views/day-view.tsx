@@ -110,6 +110,8 @@ export function DayView({
   onOpen,
   onPlace,
   overtimeEnabled = false,
+  copyLastTitle,
+  onCopyLast,
 }: {
   day: Date;
   rows: CalendarRow[];
@@ -121,6 +123,8 @@ export function DayView({
   onOpen: (shift: CalendarShift) => void;
   onPlace: (shiftId: string, day: Date, rowId: string, copy: boolean, startSlot: number) => void;
   overtimeEnabled?: boolean;
+  copyLastTitle?: string;
+  onCopyLast?: () => void;
 }) {
   const hours = hoursForDay(hoursTemplate, day, timezone);
   const range = visibleRange(hours);
@@ -160,7 +164,30 @@ export function DayView({
       <div className="overflow-auto rounded-lg border border-neutral-400 bg-white">
         <div className="min-w-[1400px]">
           <div className="sticky top-0 z-20 flex border-b border-neutral-400 bg-ink text-white">
-            <div className="w-36 shrink-0 px-3 py-2 text-sm font-medium">
+            <div className="flex w-36 shrink-0 items-center gap-1 px-2 py-2 text-sm font-medium">
+              {onCopyLast ? (
+                <button
+                  type="button"
+                  title={copyLastTitle}
+                  aria-label={copyLastTitle}
+                  className="rounded p-1 text-white hover:bg-white/10"
+                  onClick={onCopyLast}
+                >
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect width="13" height="13" x="9" y="9" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              ) : null}
               {format(day, "EEE d")}
             </div>
             <div className="relative min-h-10 flex-1">

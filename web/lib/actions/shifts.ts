@@ -520,6 +520,165 @@ export async function copyShiftAction(
   }
 }
 
+export async function copyLastPeriodAction(
+  companyId: string,
+  teamId: string,
+  rangeStartIso: string,
+  rangeEndIso: string,
+) {
+  try {
+    await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
+
+    const targetStart = new Date(rangeStartIso);
+    const targetEnd = new Date(rangeEndIso);
+    if (
+      Number.isNaN(targetStart.getTime()) ||
+      Number.isNaN(targetEnd.getTime()) ||
+      targetEnd.getTime() <= targetStart.getTime()
+    ) {
+      return { error: "Invalid date range." };
+    }
+
+    const sourceStart = addDays(targetStart, -7);
+    const sourceEnd = addDays(targetEnd, -7);
+    const offsetMs = targetStart.getTime() - sourceStart.getTime();
+    const { timezone, template } = await loadHoursContext(companyId, teamId);
+
+    const [sourceShifts, targetShifts, workers, jobs] = await Promise.all([
+      prisma.shift.findMany({
+        where: { teamId, start: { gte: sourceStart, lt: sourceEnd } },
+        include: { breaks: true, responsibilities: true },
+        orderBy: { start: "asc" },
+      }),
+      prisma.shift.findMany({
+        where: { teamId, start: { gte: targetStart, lt: targetEnd } },
+        select: { userId: true, published: true, start: true, stop: true },
+      }),
+      prisma.worker.findMany({
+        where: { teamId },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              directoryEntries: {
+                where: { companyId },
+                select: { deactivated: true },
+              },
+            },
+          },
+        },
+      }),
+      prisma.job.findMany({
+        where: { teamId },
+        select: { id: true },
+      }),
+    ]);
+
+    const activeUserIds = new Set(
+      workers
+        .filter((row) => !row.user.directoryEntries.some((entry) => entry.deactivated))
+        .map((row) => row.userId),
+    );
+    const validJobIds = new Set(jobs.map((job) => job.id));
+
+    const copies = sourceShifts
+      .filter((shift) => !shift.userId || activeUserIds.has(shift.userId))
+      .map((shift) => {
+        const start = new Date(shift.start.getTime() + offsetMs);
+        const stop = new Date(shift.stop.getTime() + offsetMs);
+        const responsibilityIds = shift.responsibilities.map((row) => row.responsibilityId);
+        return {
+          userId: shift.userId,
+          jobId: shift.jobId && validJobIds.has(shift.jobId) ? shift.jobId : null,
+          published: shift.published,
+          start,
+          stop,
+          breaks: offsetBreaks(shift.breaks, offsetMs),
+          responsibilityIds,
+        };
+      });
+
+    await assertScheduleDayEditable(companyId, teamId, [
+      ...targetShifts.map((shift) => shift.start),
+      ...copies.map((shift) => shift.start),
+    ]);
+
+    for (const copy of copies) {
+      validateShiftTimes(copy.start, copy.stop);
+      assertShiftWithinHours(template, copy.start, copy.stop, timezone);
+      await assertResponsibilities(companyId, copy.responsibilityIds, copy.responsibilityIds);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.shift.deleteMany({
+        where: { teamId, start: { gte: targetStart, lt: targetEnd } },
+      });
+      for (const copy of copies) {
+        if (copy.userId) {
+          const conflict = await tx.shift.findFirst({
+            where: {
+              userId: copy.userId,
+              start: { lt: copy.stop },
+              stop: { gt: copy.start },
+            },
+            select: { id: true },
+          });
+          if (conflict) {
+            throw new Error("This employee already has a shift during that time.");
+          }
+        }
+        await tx.shift.create({
+          data: {
+            teamId,
+            userId: copy.userId,
+            jobId: copy.jobId,
+            published: copy.published,
+            start: copy.start,
+            stop: copy.stop,
+            breaks: {
+              create: copy.breaks.map((item) => ({ start: item.start, stop: item.stop })),
+            },
+            responsibilities: { create: responsibilityCreates(copy.responsibilityIds) },
+          },
+        });
+      }
+    });
+
+    const now = new Date();
+    const removedByUser = new Map<string, typeof targetShifts>();
+    for (const shift of targetShifts) {
+      if (shift.userId && shift.published && shift.start > now) {
+        const list = removedByUser.get(shift.userId) ?? [];
+        list.push(shift);
+        removedByUser.set(shift.userId, list);
+      }
+    }
+    const addedByUser = new Map<string, typeof copies>();
+    for (const shift of copies) {
+      if (shift.userId && shift.published && shift.start > now) {
+        const list = addedByUser.get(shift.userId) ?? [];
+        list.push(shift);
+        addedByUser.set(shift.userId, list);
+      }
+    }
+    for (const [userId, shifts] of removedByUser) {
+      await notifyRemovedShifts(userId, shifts);
+    }
+    for (const [userId, shifts] of addedByUser) {
+      await notifyNewShifts(userId, shifts);
+    }
+
+    revalidateScheduling(companyId, teamId);
+    return { ok: true as const, count: copies.length };
+  } catch (error) {
+    if (error instanceof ActionError || error instanceof Error) {
+      return { error: error.message };
+    }
+    return { error: "Could not copy last period." };
+  }
+}
+
 export async function deleteShiftAction(
   companyId: string,
   teamId: string,
