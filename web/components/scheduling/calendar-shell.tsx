@@ -399,6 +399,7 @@ export function CalendarShell({
         shifts={shifts}
         overtimeEnabled={overtimeEnabled}
         hourlyRates={hourlyRates}
+        timezone={timezone}
       />
 
       {copyConfirmOpen ? (
