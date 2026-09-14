@@ -15,6 +15,7 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 - **Unassigned** is a first-class row so open shifts stay visible.
 - Publish or unpublish a day or an entire week in one action.
 - Employee and manager login, iCal feeds, and weekly schedule MMS on publish
+- Copy last week or last week same day of week and replace current day schedule
 
 ### Hours, overtime, and labor overview (overtime rules by state California default)
 
