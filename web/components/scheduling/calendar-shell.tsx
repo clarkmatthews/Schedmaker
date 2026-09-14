@@ -311,6 +311,20 @@ export function CalendarShell({
                 ? "Publish day"
                 : "Publish week"}
           </Button>
+          {view === "week" ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                window.open(
+                  `/app/companies/${companyId}/teams/${teamId}/scheduling/print?date=${dateParam(date)}`,
+                  "_blank",
+                );
+              }}
+            >
+              Print week
+            </Button>
+          ) : null}
         </div>
       </div>
 

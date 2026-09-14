@@ -43,3 +43,86 @@ a {
     rgba(0, 0, 0, 0.18) 8px
   );
 }
+
+body.print-week header {
+  display: none;
+}
+
+body.print-week main {
+  max-width: none;
+  padding: 1rem;
+}
+
+.print-week-table th,
+.print-week-table td {
+  border: 1px solid #1f2a2a;
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.print-week-table thead th {
+  background: #16302e;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.print-week-table .print-week-label {
+  background: #16302e;
+  min-width: 4.5rem;
+}
+
+.print-week-table .print-week-name,
+.print-week-table .print-week-row {
+  background: #eef3f3;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.print-week-table .print-week-name {
+  font-weight: 700;
+}
+
+.print-week-table .print-week-row {
+  font-weight: 600;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 0.4in;
+  }
+
+  body.print-week {
+    background: #ffffff;
+  }
+
+  body.print-week main {
+    padding: 0;
+  }
+
+  .print-week-actions {
+    display: none;
+  }
+
+  .print-week-table th,
+  .print-week-table td {
+    border-color: #000000;
+    color: #000000;
+  }
+
+  .print-week-table thead th,
+  .print-week-table .print-week-label {
+    background: #000000;
+    color: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-week-table .print-week-name,
+  .print-week-table .print-week-row {
+    background: #f0f0f0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
