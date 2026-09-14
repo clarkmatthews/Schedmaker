@@ -16,12 +16,14 @@ import { notifyPublishedSchedule } from "@/lib/notifications/schedule-mms";
 import {
   dateFromSlot,
   durationSlots,
+  END_SLOT,
   MAX_BREAK_SLOTS,
   SLOT_MINUTES,
   snapToSlot,
 } from "@/lib/scheduling/time-grid";
 import { assertBreaksDoNotOverlap } from "@/lib/scheduling/break-rules";
 import { assertScheduleDayEditable } from "@/lib/scheduling/schedule-lock";
+import { assertShiftWithinHours, toHoursTemplateView } from "@/lib/scheduling/hours";
 
 function emptyId(value: FormDataEntryValue | null) {
   const text = String(value ?? "").trim();
@@ -103,11 +105,35 @@ function responsibilityCreates(ids: string[]) {
 
 function datesFromSlots(day: Date, startIndex: number, stopIndex: number) {
   const start = snapToSlot(dateFromSlot(day, startIndex));
+  if (stopIndex >= END_SLOT) {
+    const stop = addDays(new Date(day.getFullYear(), day.getMonth(), day.getDate()), 1);
+    return { start, stop };
+  }
   let stop = snapToSlot(dateFromSlot(day, stopIndex));
   if (stop <= start) {
     stop = addDays(stop, 1);
   }
   return { start, stop };
+}
+
+async function loadHoursContext(companyId: string, teamId: string) {
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, companyId },
+    select: {
+      timezone: true,
+      company: {
+        select: {
+          hoursTemplate: { include: { days: true } },
+        },
+      },
+    },
+  });
+  return {
+    timezone: team?.timezone || "UTC",
+    template: team?.company.hoursTemplate
+      ? toHoursTemplateView(team.company.hoursTemplate)
+      : null,
+  };
 }
 
 function parseSlotTimes(formData: FormData, fallbackStart?: Date, fallbackStop?: Date) {
@@ -225,6 +251,7 @@ export async function createShiftsAction(
 
     await assertJobAndUser(companyId, teamId, jobId, userId);
     await assertResponsibilities(companyId, responsibilityIds);
+    const { timezone, template } = await loadHoursContext(companyId, teamId);
     const plannedStarts = targets.map(
       (day) => datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot).start,
     );
@@ -235,6 +262,7 @@ export async function createShiftsAction(
       for (const day of targets) {
         const { start, stop } = datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot);
         validateShiftTimes(start, stop);
+        assertShiftWithinHours(template, start, stop, timezone);
         await assertNoUserOverlap({ userId, start, stop });
         const breaks = normalizeBreaks(start, stop, breakInputs);
         const shift = await tx.shift.create({
@@ -286,6 +314,8 @@ export async function updateShiftAction(
     const userId = emptyId(formData.get("userId"));
     const published = String(formData.get("published") ?? "") === "true";
     validateShiftTimes(start, stop);
+    const { timezone, template } = await loadHoursContext(companyId, teamId);
+    assertShiftWithinHours(template, start, stop, timezone);
     await assertJobAndUser(companyId, teamId, jobId, userId);
     await assertNoUserOverlap({ userId, start, stop, excludeShiftId: shiftId });
     await assertScheduleDayEditable(companyId, teamId, [orig.start, start]);
@@ -347,6 +377,8 @@ export async function placeShiftAction(
     const jobId = emptyId(formData.get("jobId"));
     const userId = emptyId(formData.get("userId"));
     validateShiftTimes(start, stop);
+    const { timezone, template } = await loadHoursContext(companyId, teamId);
+    assertShiftWithinHours(template, start, stop, timezone);
     await assertJobAndUser(companyId, teamId, jobId, userId);
     await assertNoUserOverlap({
       userId,
@@ -436,12 +468,14 @@ export async function copyShiftAction(
       (day) => datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot).start,
     );
     await assertScheduleDayEditable(companyId, teamId, plannedStarts);
+    const { timezone, template } = await loadHoursContext(companyId, teamId);
 
     const created = await prisma.$transaction(async (tx) => {
       const shifts = [];
       for (const day of days) {
         const { start, stop } = datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot);
         validateShiftTimes(start, stop);
+        assertShiftWithinHours(template, start, stop, timezone);
         await assertNoUserOverlap({ userId: orig.userId, start, stop });
         const breaks = normalizeBreaks(start, stop, relativeBreaks);
         shifts.push(

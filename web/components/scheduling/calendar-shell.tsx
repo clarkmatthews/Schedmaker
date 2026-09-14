@@ -13,7 +13,7 @@ import {
   updateShiftAction,
 } from "@/lib/actions/shifts";
 import { dateParam, stepDate, type CalendarView } from "@/lib/scheduling/views";
-import { slotIndex } from "@/lib/scheduling/time-grid";
+import { END_SLOT, slotIndex } from "@/lib/scheduling/time-grid";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import { TimezoneClock } from "@/components/scheduling/timezone-clock";
@@ -32,7 +32,12 @@ import type {
   CalendarWorker,
   ViewBy,
 } from "@/components/scheduling/types";
-import type { HoursTemplateView } from "@/lib/scheduling/hours";
+import {
+  clampSlotsToWindow,
+  hoursForDateKey,
+  visibleRange,
+  type HoursTemplateView,
+} from "@/lib/scheduling/hours";
 
 export function CalendarShell({
   companyId,
@@ -118,11 +123,13 @@ export function CalendarShell({
   }
 
   function openCreate(day: Date, rowId: string, startSlot = 36) {
-    const stopSlot = Math.min(startSlot + 32, 95);
+    const hours = hoursForDateKey(hoursTemplate, format(day, "yyyy-MM-dd"));
+    const range = hours && !hours.closed ? visibleRange(hours) : null;
+    const clamped = clampSlotsToWindow(startSlot, Math.min(startSlot + 32, 95), range);
     setDraft({
       days: [format(day, "yyyy-MM-dd")],
-      startSlot,
-      stopSlot: stopSlot <= startSlot ? 95 : stopSlot,
+      startSlot: clamped.startSlot,
+      stopSlot: clamped.stopSlot,
       published: false,
       breaks: [],
       responsibilityIds: [],
@@ -132,11 +139,15 @@ export function CalendarShell({
   }
 
   function openEdit(shift: CalendarShift) {
+    const start = parseISO(shift.start);
+    const stop = parseISO(shift.stop);
+    const stopSlot =
+      slotIndex(stop) === 0 && stop.getTime() > start.getTime() ? END_SLOT : slotIndex(stop);
     setDraft({
       shiftId: shift.id,
-      days: [format(parseISO(shift.start), "yyyy-MM-dd")],
-      startSlot: slotIndex(parseISO(shift.start)),
-      stopSlot: slotIndex(parseISO(shift.stop)),
+      days: [format(start, "yyyy-MM-dd")],
+      startSlot: slotIndex(start),
+      stopSlot,
       userId: shift.userId ?? "",
       jobId: shift.jobId ?? "",
       published: shift.published,
@@ -349,6 +360,7 @@ export function CalendarShell({
           jobs={jobs}
           responsibilities={responsibilities}
           responsibilitiesEnabled={responsibilitiesEnabled}
+          hoursTemplate={hoursTemplate}
           error={error}
           onChange={setDraft}
           onClose={() => setDraft(null)}

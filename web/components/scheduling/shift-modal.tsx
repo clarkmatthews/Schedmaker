@@ -6,8 +6,14 @@ import { FieldError, Label, Select } from "@/components/ui/input";
 import { BreakOffsetSelect, TimeSelect } from "@/components/scheduling/time-select";
 import type { BreakInput } from "@/lib/actions/shifts";
 import { breaksOverlap, defaultBreakPlacement } from "@/lib/scheduling/break-rules";
-import { MAX_BREAK_SLOTS, SLOT_MINUTES } from "@/lib/scheduling/time-grid";
+import { END_SLOT, MAX_BREAK_SLOTS, SLOT_MINUTES, formatSlot } from "@/lib/scheduling/time-grid";
 import { formatHours } from "@/lib/scheduling/totals";
+import {
+  clampSlotsToWindow,
+  hoursForDateKey,
+  scheduleWindowForDateKeys,
+  type HoursTemplateView,
+} from "@/lib/scheduling/hours";
 import type { CalendarJob, CalendarResponsibility, CalendarWorker } from "@/components/scheduling/types";
 
 export type ShiftDraft = {
@@ -29,6 +35,7 @@ export function ShiftModal({
   jobs,
   responsibilities,
   responsibilitiesEnabled = true,
+  hoursTemplate = null,
   error,
   onChange,
   onClose,
@@ -42,6 +49,7 @@ export function ShiftModal({
   jobs: CalendarJob[];
   responsibilities: CalendarResponsibility[];
   responsibilitiesEnabled?: boolean;
+  hoursTemplate?: HoursTemplateView | null;
   error: string | null;
   onChange: (draft: ShiftDraft) => void;
   onClose: () => void;
@@ -49,6 +57,36 @@ export function ShiftModal({
   onCopy: () => void;
   onDelete?: () => void;
 }) {
+  const hoursWindow = scheduleWindowForDateKeys(hoursTemplate, draft.days);
+  const hoursConfigured = Boolean(hoursTemplate);
+  const closedLabels = weekDays
+    .filter((day) => hoursWindow?.closedDateKeys.includes(format(day, "yyyy-MM-dd")))
+    .map((day) => format(day, "EEE"));
+  const hoursValid =
+    !hoursConfigured ||
+    Boolean(
+      hoursWindow &&
+        hoursWindow.openDays > 0 &&
+        hoursWindow.closedDateKeys.length === 0 &&
+        hoursWindow.endSlot > hoursWindow.startSlot,
+    );
+  const startMin = hoursConfigured && hoursWindow ? hoursWindow.startSlot : undefined;
+  const effectiveStop =
+    draft.stopSlot === 0 && draft.startSlot > 0 ? END_SLOT : draft.stopSlot;
+  const startMax =
+    hoursConfigured && hoursWindow
+      ? Math.min(
+          Math.max(hoursWindow.startSlot, hoursWindow.endSlot - 1),
+          Math.max(effectiveStop - 1, hoursWindow.startSlot),
+        )
+      : undefined;
+  const stopMin =
+    hoursConfigured && hoursWindow
+      ? Math.max(hoursWindow.startSlot + 1, draft.startSlot + 1)
+      : undefined;
+  const stopMax = hoursConfigured && hoursWindow ? hoursWindow.endSlot : undefined;
+  const stopIncludeEnd = Boolean(hoursConfigured && hoursWindow && hoursWindow.endSlot >= END_SLOT);
+
   const shiftSlots =
     draft.stopSlot > draft.startSlot
       ? draft.stopSlot - draft.startSlot
@@ -63,7 +101,12 @@ export function ShiftModal({
     const selected = draft.days.includes(day)
       ? draft.days.filter((value) => value !== day)
       : [...draft.days, day];
-    onChange({ ...draft, days: selected });
+    const nextWindow = scheduleWindowForDateKeys(hoursTemplate, selected);
+    const clamped =
+      nextWindow && nextWindow.openDays > 0 && nextWindow.endSlot > nextWindow.startSlot
+        ? clampSlotsToWindow(draft.startSlot, draft.stopSlot, nextWindow)
+        : { startSlot: draft.startSlot, stopSlot: draft.stopSlot };
+    onChange({ ...draft, days: selected, ...clamped });
   }
 
   function addBreak() {
@@ -99,13 +142,15 @@ export function ShiftModal({
               {weekDays.map((day) => {
                 const key = format(day, "yyyy-MM-dd");
                 const active = draft.days.includes(key);
+                const closed = Boolean(hoursForDateKey(hoursTemplate, key)?.closed);
                 return (
                   <button
                     key={key}
                     type="button"
+                    title={closed ? "Closed" : undefined}
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       active ? "bg-teal text-white" : "bg-black/5 text-ink"
-                    }`}
+                    } ${closed && !active ? "opacity-50" : ""}`}
                     onClick={() => toggleDay(key)}
                   >
                     {format(day, "EEE")}
@@ -120,6 +165,8 @@ export function ShiftModal({
               <TimeSelect
                 id="startSlot"
                 value={draft.startSlot}
+                minSlot={startMin}
+                maxSlot={startMax}
                 onChange={(startSlot) => onChange({ ...draft, startSlot })}
               />
             </div>
@@ -128,10 +175,23 @@ export function ShiftModal({
               <TimeSelect
                 id="stopSlot"
                 value={draft.stopSlot}
+                minSlot={stopMin}
+                maxSlot={stopMax}
+                includeEnd={stopIncludeEnd}
                 onChange={(stopSlot) => onChange({ ...draft, stopSlot })}
               />
             </div>
           </div>
+          {hoursConfigured && hoursWindow && draft.days.length ? (
+            <p className="text-xs text-muted">
+              {hoursWindow.openDays > 0 && hoursWindow.endSlot > hoursWindow.startSlot
+                ? `Hours rules: earliest in ${formatSlot(hoursWindow.startSlot)}, latest out ${formatSlot(hoursWindow.endSlot)}.`
+                : "Hours rules are configured, but the selected days have no open scheduling window."}
+              {closedLabels.length
+                ? ` Closed on ${closedLabels.join(", ")}.`
+                : ""}
+            </p>
+          ) : null}
           <p className="text-sm text-muted">
             {formatHours(shiftMinutes * 60_000)} hours scheduled
             {breakMinutes > 0
@@ -281,11 +341,11 @@ export function ShiftModal({
                 Cancel
               </Button>
               {draft.shiftId ? (
-                <Button type="button" variant="outline" onClick={onCopy}>
+                <Button type="button" variant="outline" onClick={onCopy} disabled={!hoursValid}>
                   Copy to days
                 </Button>
               ) : null}
-              <Button type="button" onClick={onSave}>
+              <Button type="button" onClick={onSave} disabled={!hoursValid || overlap}>
                 Save
               </Button>
             </div>

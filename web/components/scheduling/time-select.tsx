@@ -1,26 +1,52 @@
 "use client";
 
-import { formatSlot, SLOT_MINUTES, SLOTS_PER_DAY, slotOptions } from "@/lib/scheduling/time-grid";
+import {
+  END_SLOT,
+  endSlotOptions,
+  formatSlot,
+  SLOT_MINUTES,
+  SLOTS_PER_DAY,
+  slotOptions,
+} from "@/lib/scheduling/time-grid";
 import { Select } from "@/components/ui/input";
 
-const OPTIONS = slotOptions();
+const START_OPTIONS = slotOptions();
+const END_OPTIONS = endSlotOptions();
 
 export function TimeSelect({
   id,
   value,
   onChange,
+  minSlot,
+  maxSlot,
+  includeEnd,
 }: {
   id?: string;
   value: number;
   onChange: (index: number) => void;
+  minSlot?: number;
+  maxSlot?: number;
+  includeEnd?: boolean;
 }) {
+  const all = includeEnd ? END_OPTIONS : START_OPTIONS;
+  const min = minSlot ?? 0;
+  const max = maxSlot ?? (includeEnd ? END_SLOT : SLOTS_PER_DAY - 1);
+  const options = all.filter((option) => option.index >= min && option.index <= max);
+  if (value != null && !options.some((option) => option.index === value)) {
+    const extra = all.find((option) => option.index === value);
+    if (extra) {
+      options.push(extra);
+      options.sort((a, b) => a.index - b.index);
+    }
+  }
+
   return (
     <Select
       id={id}
       value={String(value)}
       onChange={(event) => onChange(Number(event.target.value))}
     >
-      {OPTIONS.map((option) => (
+      {options.map((option) => (
         <option key={option.index} value={option.index}>
           {option.label}
         </option>
