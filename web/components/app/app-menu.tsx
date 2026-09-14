@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { SETTINGS_SECTIONS } from "@/lib/settings/sections";
 
 export function AppMenu({
   companyId,
@@ -16,7 +15,6 @@ export function AppMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
-  const adminSections = SETTINGS_SECTIONS.filter((item) => item.adminOnly);
   const showWorkspace = Boolean(companyId);
   const showAdmin = Boolean(companyId && isAdmin);
 
@@ -72,31 +70,15 @@ export function AppMenu({
               })}
             </>
           ) : null}
-          {showAdmin
-            ? adminSections.map((item) => (
-                <div key={item.id} className="border-t border-border">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium hover:bg-black/5"
-                    onClick={() => toggle(item.id)}
-                  >
-                    {item.label}
-                    <span className="text-muted">{section === item.id ? "−" : "+"}</span>
-                  </button>
-                  {section === item.id ? (
-                    <div className="px-3 pb-3 text-sm text-muted">
-                      <Link
-                        href={`/app/companies/${companyId}/settings?section=${item.id}`}
-                        className="font-medium text-teal hover:underline"
-                        onClick={() => setOpen(false)}
-                      >
-                        Open {item.label.toLowerCase()} settings
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ))
-            : null}
+          {showAdmin ? (
+            <Link
+              href={`/app/companies/${companyId}/settings`}
+              className="block rounded border-t border-border px-3 py-2 text-sm font-medium hover:bg-black/5"
+              onClick={() => setOpen(false)}
+            >
+              Company settings
+            </Link>
+          ) : null}
           <Link
             href="/account"
             className="block rounded px-3 py-2 text-sm font-medium hover:bg-black/5"

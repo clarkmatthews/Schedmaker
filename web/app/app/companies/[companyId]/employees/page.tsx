@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { EmployeeManager } from "@/components/employees/employee-manager";
-import { CreateTeamForm } from "@/components/settings/create-team-form";
 import { mapDirectoryEmployee } from "@/lib/employees";
 
 export default async function EmployeesPage({
@@ -27,7 +26,6 @@ export default async function EmployeesPage({
   const adminIds = new Set(admins.map((row) => row.userId));
 
   return (
-    <div className="space-y-6">
     <EmployeeManager
       companyId={companyId}
       teams={teams.map((team) => ({ id: team.id, name: team.name }))}
@@ -40,7 +38,5 @@ export default async function EmployeesPage({
         ),
       )}
     />
-    <CreateTeamForm companyId={companyId} />
-    </div>
   );
 }

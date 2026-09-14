@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings/sections";
 import { cn } from "@/lib/utils";
@@ -38,21 +37,7 @@ export function SettingsAccordion({
               {item.label}
               <span>{open ? "−" : "+"}</span>
             </button>
-            {open ? (
-              <div className="border-t border-border p-5">
-                {item.id === "account" ? (
-                  <p className="text-sm">
-                    Manage your profile, password, and calendar feed in{" "}
-                    <Link href="/account" className="text-teal hover:underline">
-                      My account
-                    </Link>
-                    .
-                  </p>
-                ) : (
-                  panels[item.id]
-                )}
-              </div>
-            ) : null}
+            {open ? <div className="border-t border-border p-5">{panels[item.id]}</div> : null}
           </section>
         );
       })}

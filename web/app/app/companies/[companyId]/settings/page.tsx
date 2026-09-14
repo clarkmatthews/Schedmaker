@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
@@ -44,7 +43,6 @@ export default async function CompanySettingsPage({
         include: { jobs: { orderBy: { name: "asc" } } },
         orderBy: { name: "asc" },
       },
-      directory: { include: { user: true }, orderBy: { user: { name: "asc" } } },
       responsibilities: { orderBy: { name: "asc" } },
       hoursTemplates: { include: { days: true }, orderBy: { name: "asc" } },
     },
@@ -127,30 +125,6 @@ export default async function CompanySettingsPage({
               responsibilities={company.responsibilities}
             />
           ),
-          people: (
-            <div className="space-y-3">
-              <p className="text-sm text-muted">
-                Manage employees, admin flags, and team membership on the{" "}
-                <Link
-                  href={`/app/companies/${companyId}/employees`}
-                  className="text-teal hover:underline"
-                >
-                  Employees
-                </Link>{" "}
-                page.
-              </p>
-              <ul className="divide-y divide-border rounded-md border border-border">
-                {company.directory
-                  .filter((entry) => !entry.deactivated)
-                  .map((entry) => (
-                    <li key={entry.userId} className="px-3 py-2 text-sm">
-                      {entry.user.name || entry.user.email}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ),
-          account: null,
         }}
       />
     </div>
