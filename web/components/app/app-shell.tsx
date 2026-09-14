@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { AppMenu } from "@/components/app/app-menu";
+import { AppMenu, type AppMenuCompany } from "@/components/app/app-menu";
 
 export async function AppShell({
   children,
@@ -8,12 +8,14 @@ export async function AppShell({
   companyName,
   teams,
   isAdmin,
+  companies,
 }: {
   children: React.ReactNode;
   companyId?: string;
   companyName?: string;
   teams?: { id: string; name: string }[];
   isAdmin?: boolean;
+  companies?: AppMenuCompany[];
 }) {
   const session = await auth();
   const userLabel = session?.user?.name || session?.user?.email;
@@ -23,7 +25,12 @@ export async function AppShell({
       <header className="border-b border-border bg-ink text-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <AppMenu companyId={companyId} isAdmin={isAdmin} teams={teams} />
+            <AppMenu
+              companyId={companyId}
+              isAdmin={isAdmin}
+              teams={teams}
+              companies={companies}
+            />
             <Link href="/app" className="text-lg font-bold text-teal">
               Schedmaker
             </Link>
