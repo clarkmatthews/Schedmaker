@@ -128,13 +128,13 @@ docker compose up -d
 
 People down the side, days across the top, Hours/OT on the right, and a labor overview under the grid. Meal-rule warnings appear as a red mark on the shift.
 
-![Week schedule with Hours/OT totals and labor overview](docs/screenshots/week-view.png)
+<img width="1202" height="722" alt="image" src="https://github.com/user-attachments/assets/4f90f27f-38bb-40c1-80ff-5a3fa0e717a3" />
 
 ### Day view
 
 A 15-minute timeline with grey hours-template bands, compact shift bars, and per-hour totals along the bottom.
 
-![Day schedule with hourly grid and meal-break warnings](docs/screenshots/day-view.png)
+<img width="1204" height="694" alt="image" src="https://github.com/user-attachments/assets/106695b4-c31b-4305-9fdc-c7bd7bc0bb59" />
 
 ### Scheduling settings
 
