@@ -6,7 +6,7 @@ import { parseBirthDate, parseHourlyRate } from "@/lib/employees";
 import { emptyToNull } from "@/lib/utils";
 import { issueEmailToken } from "@/lib/tokens";
 import { notifyActivation, notifyOnboardWorker } from "@/lib/notifications";
-import { ActionError, requireCompanyAdmin, requireSession } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requireCompanyAdmin, requireSession } from "@/lib/permissions";
 
 function appUrl() {
   return process.env.AUTH_URL ?? "http://localhost:3000";
@@ -82,16 +82,12 @@ export async function createEmployeeAction(companyId: string, formData: FormData
     });
 
     if (teamId) {
-      const team = await prisma.team.findFirst({
-        where: { id: teamId, companyId },
+      await assertTeamInCompany(companyId, teamId);
+      await prisma.worker.upsert({
+        where: { teamId_userId: { teamId, userId: user.id } },
+        update: {},
+        create: { teamId, userId: user.id },
       });
-      if (team) {
-        await prisma.worker.upsert({
-          where: { teamId_userId: { teamId, userId: user.id } },
-          update: {},
-          create: { teamId, userId: user.id },
-        });
-      }
     }
 
     if (created) {
@@ -203,8 +199,7 @@ export async function setEmployeeTeamAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
-    const team = await prisma.team.findFirst({ where: { id: teamId, companyId } });
-    if (!team) return { error: "Team not found." };
+    await assertTeamInCompany(companyId, teamId);
 
     if (assigned) {
       await prisma.worker.upsert({

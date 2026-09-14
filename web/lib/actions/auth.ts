@@ -1,20 +1,49 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { emptyToNull } from "@/lib/utils";
 import { consumeEmailToken, issueEmailToken } from "@/lib/tokens";
 import { notifyActivation, notifyPasswordReset } from "@/lib/notifications";
 import { ActionError, requireSession } from "@/lib/permissions";
+import { hitRateLimit, isRateLimited, resetRateLimit } from "@/lib/rate-limit";
+
+const MIN_PASSWORD_LENGTH = 8;
+const AUTH_RATE_LIMIT_MESSAGE = "Too many attempts. Try again in a few minutes.";
+const LOGIN_FAIL_MESSAGE =
+  "Incorrect email or password, or the account is not activated.";
 
 function appUrl() {
   return process.env.AUTH_URL ?? "http://localhost:3000";
 }
 
+function passwordTooShort(password: string) {
+  return password.length < MIN_PASSWORD_LENGTH
+    ? `Your password must be at least ${MIN_PASSWORD_LENGTH} characters long.`
+    : null;
+}
+
+async function clientIp() {
+  const h = await headers();
+  return (
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
 export async function signupAction(formData: FormData) {
+  const ip = await clientIp();
+  const signupKey = `signup:${ip}`;
+  if (isRateLimited(signupKey, 5)) {
+    return { error: AUTH_RATE_LIMIT_MESSAGE };
+  }
+  hitRateLimit(signupKey);
+
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "")
     .trim()
@@ -41,8 +70,15 @@ export async function signupAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
-  const email = String(formData.get("email") ?? "");
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const ip = await clientIp();
+  const loginKey = `login:${ip}:${email}`;
+  if (isRateLimited(loginKey, 5)) {
+    return { error: AUTH_RATE_LIMIT_MESSAGE };
+  }
   try {
     const result = await signIn("credentials", {
       email,
@@ -56,15 +92,22 @@ export async function loginAction(formData: FormData) {
       "error" in result &&
       Boolean((result as { error?: string }).error);
     if (failed) {
-      return { error: "Incorrect email or password, or the account is not activated." };
+      hitRateLimit(loginKey);
+      return { error: LOGIN_FAIL_MESSAGE };
     }
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "Incorrect email or password, or the account is not activated." };
+      hitRateLimit(loginKey);
+      return { error: LOGIN_FAIL_MESSAGE };
     }
     throw error;
   }
+  resetRateLimit(loginKey);
   redirect("/app");
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/" });
 }
 
 export async function activateAction(token: string, formData: FormData) {
@@ -73,9 +116,8 @@ export async function activateAction(token: string, formData: FormData) {
   const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
   const tos = String(formData.get("tos") ?? "");
 
-  if (password.length < 6) {
-    return { error: "Your password must be at least 6 characters long." };
-  }
+  const short = passwordTooShort(password);
+  if (short) return { error: short };
   if (!tos) {
     return { error: "You must agree to the terms and conditions." };
   }
@@ -114,6 +156,13 @@ export async function activateAction(token: string, formData: FormData) {
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
+  const ip = await clientIp();
+  const resetKey = `reset:${ip}`;
+  if (isRateLimited(resetKey, 5)) {
+    return { error: AUTH_RATE_LIMIT_MESSAGE };
+  }
+  hitRateLimit(resetKey);
+
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
@@ -133,9 +182,8 @@ export async function requestPasswordResetAction(formData: FormData) {
 
 export async function confirmPasswordResetAction(token: string, formData: FormData) {
   const password = String(formData.get("password") ?? "");
-  if (password.length < 6) {
-    return { error: "Your password must be at least 6 characters long." };
-  }
+  const short = passwordTooShort(password);
+  if (short) return { error: short };
   const row = await consumeEmailToken(token, "reset");
   if (!row) {
     return { error: "This reset link is invalid or expired." };
@@ -143,7 +191,11 @@ export async function confirmPasswordResetAction(token: string, formData: FormDa
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({
     where: { id: row.userId },
-    data: { passwordHash, confirmedAndActive: true },
+    data: {
+      passwordHash,
+      confirmedAndActive: true,
+      sessionVersion: { increment: 1 },
+    },
   });
   await signIn("credentials", {
     email: row.user.email,
@@ -172,14 +224,35 @@ export async function updateAccountAction(formData: FormData) {
 
 export async function updatePasswordAction(formData: FormData) {
   const user = await requireSession();
+  const currentPassword = String(formData.get("currentPassword") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (password.length < 6) {
-    return { error: "Your password must be at least 6 characters long." };
+  const short = passwordTooShort(password);
+  if (short) return { error: short };
+
+  const existing = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { passwordHash: true, email: true },
+  });
+  if (!existing?.passwordHash) {
+    return { error: "Current password is incorrect." };
   }
+  const matches = await bcrypt.compare(currentPassword, existing.passwordHash);
+  if (!matches) {
+    return { error: "Current password is incorrect." };
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      sessionVersion: { increment: 1 },
+    },
+  });
+  await signIn("credentials", {
+    email: existing.email,
+    password,
+    redirect: false,
   });
   return { ok: true as const };
 }

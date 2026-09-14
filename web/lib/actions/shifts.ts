@@ -3,7 +3,7 @@
 import { addDays } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, requireCompanyAdmin, requireTeamWorker } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requireCompanyAdmin, requireTeamWorker } from "@/lib/permissions";
 import {
   notifyShiftCreated,
   notifyShiftDeleted,
@@ -128,9 +128,12 @@ async function loadHoursContext(companyId: string, teamId: string) {
       },
     },
   });
+  if (!team) {
+    throw new ActionError("Team not found.");
+  }
   return {
-    timezone: team?.timezone || "UTC",
-    template: team?.company.hoursTemplate
+    timezone: team.timezone || "UTC",
+    template: team.company.hoursTemplate
       ? toHoursTemplateView(team.company.hoursTemplate)
       : null,
   };
@@ -229,6 +232,7 @@ export async function createShiftsAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const days = parseDays(formData);
     const fallbackDay = String(formData.get("day") ?? "");
     const targets = days.length ? days : fallbackDay ? [fallbackDay] : [];
@@ -303,6 +307,7 @@ export async function updateShiftAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
       include: { breaks: true, responsibilities: true },
@@ -366,6 +371,7 @@ export async function placeShiftAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
       include: { breaks: true, responsibilities: true },
@@ -445,6 +451,7 @@ export async function copyShiftAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
       include: { breaks: true, responsibilities: true },
@@ -546,6 +553,7 @@ export async function bulkPublishShiftsAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const start = new Date(startIso);
     const end = new Date(endIso);
     const shifts = await prisma.shift.findMany({

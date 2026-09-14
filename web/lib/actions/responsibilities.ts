@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, requireCompanyAdmin } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requireCompanyAdmin } from "@/lib/permissions";
 
 function revalidateSettings(companyId: string) {
   revalidatePath(`/app/companies/${companyId}/settings`);
@@ -36,8 +36,7 @@ export async function createResponsibilityAction(companyId: string, formData: Fo
     if (!name) return { error: "Name is required." };
 
     if (teamId) {
-      const team = await prisma.team.findFirst({ where: { id: teamId, companyId } });
-      if (!team) return { error: "Invalid team." };
+      await assertTeamInCompany(companyId, teamId);
     }
 
     await prisma.responsibility.create({

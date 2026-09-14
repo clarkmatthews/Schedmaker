@@ -126,7 +126,7 @@ export function ActivateForm({
       </div>
       <div>
         <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" minLength={6} required />
+        <Input id="password" name="password" type="password" minLength={8} required />
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="tos" value="yes" />
@@ -192,7 +192,7 @@ export function ResetConfirmForm({ token }: { token: string }) {
     >
       <div>
         <Label htmlFor="password">New password</Label>
-        <Input id="password" name="password" type="password" minLength={6} required />
+        <Input id="password" name="password" type="password" minLength={8} required />
       </div>
       <FieldError message={error} />
       <Button type="submit" disabled={pending} className="w-full">

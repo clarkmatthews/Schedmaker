@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { LogoutButton } from "@/components/app/logout-button";
 
 export type AppMenuCompany = {
   id: string;
@@ -172,9 +173,7 @@ export function AppMenu({
           <Link href="/account" className={linkClass()} onClick={close}>
             My account
           </Link>
-          <Link href="/logout" className={linkClass()} onClick={close}>
-            Log out
-          </Link>
+          <LogoutButton className={`${linkClass()} w-full text-left`} />
         </div>
       ) : null}
     </div>

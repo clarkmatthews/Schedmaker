@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { LogoutButton } from "@/components/app/logout-button";
 
 export async function AuthHeader() {
   const session = await auth();
@@ -15,9 +16,7 @@ export async function AuthHeader() {
               <Link href="/app" className="hover:text-teal">
                 App
               </Link>
-              <Link href="/logout" className="hover:text-teal">
-                Log out
-              </Link>
+              <LogoutButton className="hover:text-teal" />
             </>
           ) : (
             <Link

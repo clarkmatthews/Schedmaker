@@ -7,7 +7,7 @@ export const proxy = auth((req) => {
     pathname.startsWith("/account") ||
     pathname.startsWith("/new-company");
 
-  if (needsAuth && !req.auth) {
+  if (needsAuth && !req.auth?.user?.id) {
     const login = new URL("/", req.nextUrl);
     login.searchParams.set("callbackUrl", pathname);
     return Response.redirect(login);

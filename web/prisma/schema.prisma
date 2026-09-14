@@ -19,6 +19,7 @@ model User {
   birthDate          DateTime? @db.Date
   memberSince        DateTime @default(now())
   icalToken          String   @unique @default(uuid())
+  sessionVersion     Int      @default(0)
 
   emailTokens      EmailToken[]
   directoryEntries Directory[]

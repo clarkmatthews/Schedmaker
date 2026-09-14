@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, requireCompanyAdmin } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requireCompanyAdmin } from "@/lib/permissions";
 
 export async function createTeamAction(companyId: string, formData: FormData) {
   try {
@@ -37,6 +37,7 @@ export async function updateTeamAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const timezone = String(formData.get("timezone") ?? "UTC");
     const dayWeekStarts = String(formData.get("dayWeekStarts") ?? "monday");
@@ -63,6 +64,7 @@ export async function createJobAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     if (!name) return { error: "Job name is required." };
@@ -86,10 +88,14 @@ export async function updateJobAction(
 ) {
   try {
     await requireCompanyAdmin(companyId);
+    await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     const archived = String(formData.get("archived") ?? "") === "true";
     if (!name) return { error: "Job name is required." };
+
+    const job = await prisma.job.findFirst({ where: { id: jobId, teamId } });
+    if (!job) return { error: "Job not found." };
 
     await prisma.job.update({
       where: { id: jobId },

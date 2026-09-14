@@ -13,7 +13,25 @@ export async function requireSession() {
   if (!session?.user?.id) {
     throw new ActionError("You must be signed in.");
   }
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { confirmedAndActive: true },
+  });
+  if (!user?.confirmedAndActive) {
+    throw new ActionError("You must be signed in.");
+  }
   return session.user;
+}
+
+export async function assertTeamInCompany(companyId: string, teamId: string) {
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, companyId },
+    select: { id: true },
+  });
+  if (!team) {
+    throw new ActionError("Team not found.");
+  }
+  return team;
 }
 
 export async function getCompanyAccess(userId: string, companyId: string) {
@@ -58,6 +76,7 @@ export async function requireDirectory(companyId: string) {
 
 export async function requireTeamWorker(companyId: string, teamId: string) {
   const user = await requireSession();
+  await assertTeamInCompany(companyId, teamId);
   const access = await getCompanyAccess(user.id, companyId);
   if (access.support || access.admin) {
     return { user, access, worker: true };

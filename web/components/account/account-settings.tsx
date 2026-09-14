@@ -74,8 +74,17 @@ export function AccountSettings({
       >
         <h2 className="text-lg font-semibold">Password</h2>
         <div>
+          <Label htmlFor="currentPassword">Current password</Label>
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            required
+          />
+        </div>
+        <div>
           <Label htmlFor="password">New password</Label>
-          <Input id="password" name="password" type="password" minLength={6} required />
+          <Input id="password" name="password" type="password" minLength={8} required />
         </div>
         <FieldError message={passwordError} />
         {passwordOk ? <p className="text-sm text-teal-dark">Password updated.</p> : null}
