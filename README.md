@@ -68,7 +68,7 @@ Each location can assign an hours template that shapes the day-view grid.
 
 ### Company and account
 
-Settings is an accordion, not a maze of pages:
+Settings:
 
 | Section | What it covers |
 | --- | --- |
@@ -79,6 +79,7 @@ Settings is an accordion, not a maze of pages:
 | Responsibilities | Shared duties |
 | People | Directory and admin access |
 | Account | Name, email, phone, password, and a personal **iCal** feed |
+| Roles | Role based permissions for all the features of the schedule app |
 
 Choosing a US state loads that state’s meal and overtime defaults (California is first). You can then tune the numbers. Minor hour and curfew rules are next.
 
