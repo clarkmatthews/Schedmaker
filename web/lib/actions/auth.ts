@@ -139,7 +139,7 @@ export async function activateAction(token: string, formData: FormData) {
     },
   });
 
-  const adminCount = await prisma.admin.count({ where: { userId: row.userId } });
+  const directoryCount = await prisma.directory.count({ where: { userId: row.userId } });
   const workerCount = await prisma.worker.count({ where: { userId: row.userId } });
   const user = await prisma.user.findUnique({ where: { id: row.userId } });
 
@@ -147,7 +147,7 @@ export async function activateAction(token: string, formData: FormData) {
     email: row.email,
     password,
     redirectTo:
-      adminCount > 0 || user?.support
+      directoryCount > 0 || user?.support
         ? "/app"
         : workerCount > 0
           ? "/account"

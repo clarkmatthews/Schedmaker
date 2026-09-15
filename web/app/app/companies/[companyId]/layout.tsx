@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getCompanyAccess } from "@/lib/permissions";
+import { getCompanyAccess, menuCapabilities } from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
 
 export default async function CompanyLayout({
@@ -30,7 +30,7 @@ export default async function CompanyLayout({
     <AppShell
       companyId={company.id}
       companyName={company.name}
-      isAdmin={access.admin || access.support}
+      capabilities={menuCapabilities(access)}
       teams={company.teams.map((team) => ({ id: team.id, name: team.name }))}
     >
       {children}

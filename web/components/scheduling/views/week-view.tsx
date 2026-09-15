@@ -29,9 +29,9 @@ export function WeekView({
   viewBy: ViewBy;
   timezone: string;
   shiftsFor: (rowId: string, day: Date) => CalendarShift[];
-  onCreate: (day: Date, rowId: string) => void;
-  onOpen: (shift: CalendarShift) => void;
-  onPlace: (shiftId: string, day: Date, rowId: string, copy: boolean) => void;
+  onCreate?: (day: Date, rowId: string) => void;
+  onOpen?: (shift: CalendarShift) => void;
+  onPlace?: (shiftId: string, day: Date, rowId: string, copy: boolean) => void;
   onSelectDay: (day: Date) => void;
   overtimeEnabled?: boolean;
   copyLastTitle?: string;
@@ -112,12 +112,14 @@ export function WeekView({
                     <td
                       key={day.toISOString()}
                       className="group min-w-36 border-l border-border p-1 hover:bg-teal/5"
-                      onClick={() => onCreate(day, row.id)}
+                      onClick={() => onCreate?.(day, row.id)}
                       onDragOver={(event) => {
+                        if (!onPlace) return;
                         event.preventDefault();
                         event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
                       }}
                       onDrop={(event) => {
+                        if (!onPlace) return;
                         event.preventDefault();
                         const shiftId =
                           event.dataTransfer.getData(SHIFT_DRAG_TYPE) ||
@@ -135,12 +137,15 @@ export function WeekView({
                             viewBy={viewBy}
                             color={row.color}
                             timezone={timezone}
+                            canEdit={Boolean(onPlace)}
                             onOpen={onOpen}
                           />
                         ))}
-                        <div className="pointer-events-none hidden h-6 items-center justify-center text-lg text-teal group-hover:flex">
-                          +
-                        </div>
+                        {onCreate ? (
+                          <div className="pointer-events-none hidden h-6 items-center justify-center text-lg text-teal group-hover:flex">
+                            +
+                          </div>
+                        ) : null}
                       </div>
                     </td>
                   );

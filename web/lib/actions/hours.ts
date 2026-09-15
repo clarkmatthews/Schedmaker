@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, requireCompanyAdmin } from "@/lib/permissions";
+import { ActionError, requirePermission } from "@/lib/permissions";
 import { WEEKDAYS } from "@/lib/utils";
 import { END_SLOT } from "@/lib/scheduling/time-grid";
 import { defaultHoursDays } from "@/lib/scheduling/hours";
@@ -59,7 +59,7 @@ function parseDays(formData: FormData) {
 
 export async function createHoursTemplateAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "hours", "edit");
     const name = String(formData.get("name") ?? "").trim() || "Standard hours";
     const days = parseDays(formData);
     const created = await prisma.$transaction(async (tx) => {
@@ -93,7 +93,7 @@ export async function updateHoursTemplateAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "hours", "edit");
     const existing = await prisma.hoursTemplate.findFirst({
       where: { id: templateId, companyId },
     });
@@ -121,7 +121,7 @@ export async function updateHoursTemplateAction(
 
 export async function assignHoursTemplateAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "hours", "edit");
     const templateId = String(formData.get("hoursTemplateId") ?? "").trim() || null;
     if (templateId) {
       const template = await prisma.hoursTemplate.findFirst({
@@ -143,7 +143,7 @@ export async function assignHoursTemplateAction(companyId: string, formData: For
 
 export async function deleteHoursTemplateAction(companyId: string, templateId: string) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "hours", "edit");
     const existing = await prisma.hoursTemplate.findFirst({
       where: { id: templateId, companyId },
     });

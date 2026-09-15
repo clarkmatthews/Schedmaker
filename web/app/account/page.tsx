@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getCompanyAccess, getUserCompanies } from "@/lib/permissions";
+import { getCompanyAccess, getUserCompanies, menuCapabilities } from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
 import { AccountSettings } from "@/components/account/account-settings";
 
@@ -19,7 +19,7 @@ export default async function AccountPage() {
       return {
         id: company.id,
         name: company.name,
-        isAdmin: access.admin || access.support,
+        capabilities: menuCapabilities(access),
         teams: company.teams.map((team) => ({ id: team.id, name: team.name })),
       };
     }),

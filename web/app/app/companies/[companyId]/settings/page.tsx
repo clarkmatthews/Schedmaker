@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getCompanyAccess } from "@/lib/permissions";
+import { can, getCompanyAccess, hasSettingsAccess } from "@/lib/permissions";
 import { SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings/sections";
+import type { PermissionSectionId } from "@/lib/roles";
 import { CompanySettingsForm } from "@/components/settings/company-settings-form";
 import { CreateTeamForm } from "@/components/settings/create-team-form";
 import { ResponsibilitiesSettings } from "@/components/settings/responsibilities-settings";
@@ -11,12 +12,15 @@ import { TeamSettings } from "@/components/settings/team-settings";
 import { HoursSettings } from "@/components/settings/hours-settings";
 import { SchedulingSettings } from "@/components/settings/scheduling-settings";
 import { MmsSettings } from "@/components/settings/mms-settings";
+import { RolesSettings } from "@/components/settings/roles-settings";
 import { toHoursTemplateView } from "@/lib/scheduling/hours";
 
-function parseSection(value?: string): SettingsSectionId {
-  return SETTINGS_SECTIONS.some((item) => item.id === value)
-    ? (value as SettingsSectionId)
-    : "company";
+function parseSection(
+  value: string | undefined,
+  visible: { id: SettingsSectionId }[],
+): SettingsSectionId {
+  if (visible.some((item) => item.id === value)) return value as SettingsSectionId;
+  return visible[0]?.id ?? "company";
 }
 
 export default async function CompanySettingsPage({
@@ -31,9 +35,14 @@ export default async function CompanySettingsPage({
   const { companyId } = await params;
   const { section: sectionParam } = await searchParams;
   const access = await getCompanyAccess(session.user.id, companyId);
-  if (!access.support && !access.admin) {
+  if (!hasSettingsAccess(access, "view")) {
     redirect("/account");
   }
+
+  const visibleSections = SETTINGS_SECTIONS.filter((item) =>
+    can(access, item.id as PermissionSectionId, "view"),
+  );
+  const section = parseSection(sectionParam, visibleSections);
 
   const company = await prisma.company.findUnique({
     where: { id: companyId },
@@ -45,13 +54,18 @@ export default async function CompanySettingsPage({
       },
       responsibilities: { orderBy: { name: "asc" } },
       hoursTemplates: { include: { days: true }, orderBy: { name: "asc" } },
+      roles: { orderBy: { sortOrder: "asc" } },
     },
   });
   if (!company) notFound();
 
   const hoursTemplates = company.hoursTemplates.map(toHoursTemplateView);
-
-  const section = parseSection(sectionParam);
+  const readOnly = Object.fromEntries(
+    visibleSections.map((item) => [
+      item.id,
+      !can(access, item.id as PermissionSectionId, "edit"),
+    ]),
+  ) as Partial<Record<SettingsSectionId, boolean>>;
 
   return (
     <div className="space-y-6">
@@ -59,6 +73,8 @@ export default async function CompanySettingsPage({
       <SettingsAccordion
         companyId={companyId}
         section={section}
+        sections={visibleSections}
+        readOnly={readOnly}
         panels={{
           company: (
             <CompanySettingsForm
@@ -123,6 +139,13 @@ export default async function CompanySettingsPage({
               companyId={companyId}
               enabled={company.responsibilitiesEnabled}
               responsibilities={company.responsibilities}
+            />
+          ),
+          roles: (
+            <RolesSettings
+              companyId={companyId}
+              canEdit={can(access, "roles", "edit")}
+              roles={company.roles}
             />
           ),
         }}

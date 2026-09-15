@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { getUserCompanies } from "@/lib/permissions";
+import { firstCompanyHref, getCompanyAccess, getUserCompanies } from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
 
 export default async function AppHomePage() {
@@ -9,6 +9,17 @@ export default async function AppHomePage() {
   if (!session?.user?.id) redirect("/");
 
   const companies = await getUserCompanies(session.user.id, session.user.support);
+  const cards = await Promise.all(
+    companies.map(async (company) => {
+      const access = await getCompanyAccess(session.user.id, company.id);
+      return {
+        id: company.id,
+        name: company.name,
+        teamCount: company.teams.length,
+        href: firstCompanyHref(company.id, access, company.teams),
+      };
+    }),
+  );
 
   return (
     <AppShell>
@@ -22,21 +33,21 @@ export default async function AppHomePage() {
             New company
           </Link>
         </div>
-        {companies.length === 0 ? (
+        {cards.length === 0 ? (
           <p className="rounded-lg border border-border bg-white p-6 text-muted">
             You are not part of a company yet. Create one to start scheduling.
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {companies.map((company) => (
+            {cards.map((company) => (
               <Link
                 key={company.id}
-                href={`/app/companies/${company.id}/employees`}
+                href={company.href}
                 className="rounded-lg border border-border bg-white p-5 hover:border-teal"
               >
                 <h2 className="text-lg font-semibold">{company.name}</h2>
                 <p className="mt-1 text-sm text-muted">
-                  {company.teams.length} team{company.teams.length === 1 ? "" : "s"}
+                  {company.teamCount} team{company.teamCount === 1 ? "" : "s"}
                 </p>
               </Link>
             ))}

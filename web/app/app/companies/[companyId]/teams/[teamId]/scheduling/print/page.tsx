@@ -1,6 +1,8 @@
 import { addDays } from "date-fns";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
+import { can, getCompanyAccess } from "@/lib/permissions";
 import { parseDateParam, weekRange } from "@/lib/scheduling/range";
 import { PrintWeek, buildPrintEmployees } from "@/components/scheduling/print-week";
 import { PrintWeekFrame } from "@/components/scheduling/print-week-frame";
@@ -13,6 +15,11 @@ export default async function PrintWeekPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { companyId, teamId } = await params;
+  const session = await auth();
+  if (!session?.user?.id) redirect("/");
+  const access = await getCompanyAccess(session.user.id, companyId);
+  if (!can(access, "schedule", "view")) redirect("/account");
+  const canEditSchedule = can(access, "schedule", "edit");
   const { date: dateParam } = await searchParams;
   const team = await prisma.team.findFirst({
     where: { id: teamId, companyId },
@@ -31,7 +38,8 @@ export default async function PrintWeekPage({
   const shifts = await prisma.shift.findMany({
     where: {
       teamId,
-      userId: { not: null },
+      userId: canEditSchedule ? { not: null } : session.user.id,
+      ...(canEditSchedule ? {} : { published: true }),
       start: { gte: weekBounds.start, lt: weekBounds.end },
     },
     include: {

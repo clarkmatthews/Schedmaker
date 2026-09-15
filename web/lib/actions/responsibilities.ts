@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, assertTeamInCompany, requireCompanyAdmin } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requirePermission } from "@/lib/permissions";
 
 function revalidateSettings(companyId: string) {
   revalidatePath(`/app/companies/${companyId}/settings`);
@@ -14,7 +14,7 @@ export async function setResponsibilitiesEnabledAction(
   enabled: boolean,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "responsibilities", "edit");
     await prisma.company.update({
       where: { id: companyId },
       data: { responsibilitiesEnabled: enabled },
@@ -29,7 +29,7 @@ export async function setResponsibilitiesEnabledAction(
 
 export async function createResponsibilityAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "responsibilities", "edit");
     const name = String(formData.get("name") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
     const teamId = String(formData.get("teamId") ?? "").trim() || null;
@@ -56,7 +56,7 @@ export async function updateResponsibilityAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "responsibilities", "edit");
     const existing = await prisma.responsibility.findFirst({
       where: { id: responsibilityId, companyId },
     });

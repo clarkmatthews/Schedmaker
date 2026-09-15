@@ -23,7 +23,6 @@ model User {
 
   emailTokens      EmailToken[]
   directoryEntries Directory[]
-  adminOf          Admin[]
   workerOf         Worker[]
   shifts           Shift[]
   coveringBreaks   BreakCoverage[]
@@ -62,7 +61,7 @@ model Company {
 
   teams            Team[]
   directory        Directory[]
-  admins           Admin[]
+  roles            Role[]
   responsibilities Responsibility[]
   hoursTemplates   HoursTemplate[]  @relation("OwnedHours")
 }
@@ -190,18 +189,37 @@ model BreakCoverage {
   @@index([responsibilityId])
 }
 
+model Role {
+  id           String  @id @default(uuid()) @db.Uuid
+  companyId    String  @db.Uuid
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name         String
+  systemKey    String?
+  sortOrder    Int     @default(0)
+  permissions  Json
+
+  members Directory[]
+
+  @@unique([companyId, name])
+  @@unique([companyId, systemKey])
+  @@index([companyId])
+}
+
 model Directory {
   companyId    String  @db.Uuid
   userId       String  @db.Uuid
+  roleId           String  @db.Uuid
   internalId       String  @default("")
   deactivated      Boolean @default(false)
   mealBreakWaiver  Boolean @default(false)
   hourlyRate       Decimal? @db.Decimal(8, 2)
   company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role    @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
   @@id([companyId, userId])
   @@index([userId])
+  @@index([roleId])
 }
 
 model Worker {
@@ -240,12 +258,3 @@ model HoursTemplateDay {
   @@unique([templateId, weekday])
 }
 
-model Admin {
-  companyId String  @db.Uuid
-  userId    String  @db.Uuid
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([companyId, userId])
-  @@index([userId])
-}

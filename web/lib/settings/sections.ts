@@ -4,19 +4,20 @@ export type SettingsSectionId =
   | "scheduling"
   | "mms"
   | "teams"
-  | "responsibilities";
+  | "responsibilities"
+  | "roles";
 
 export type SettingsSection = {
   id: SettingsSectionId;
   label: string;
-  adminOnly: boolean;
 };
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
-  { id: "company", label: "Company", adminOnly: true },
-  { id: "hours", label: "Hours", adminOnly: true },
-  { id: "scheduling", label: "Scheduling", adminOnly: true },
-  { id: "mms", label: "MMS", adminOnly: true },
-  { id: "teams", label: "Teams", adminOnly: true },
-  { id: "responsibilities", label: "Responsibilities", adminOnly: true },
+  { id: "company", label: "Company" },
+  { id: "hours", label: "Hours" },
+  { id: "scheduling", label: "Scheduling" },
+  { id: "mms", label: "MMS" },
+  { id: "teams", label: "Teams" },
+  { id: "responsibilities", label: "Responsibilities" },
+  { id: "roles", label: "Roles" },
 ];

@@ -5,9 +5,10 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   ActionError,
-  requireCompanyAdmin,
+  requirePermission,
   requireSession,
 } from "@/lib/permissions";
+import { createDefaultRoles } from "@/lib/roles";
 
 export async function createCompanyAction(formData: FormData) {
   const user = await requireSession();
@@ -32,15 +33,16 @@ export async function createCompanyAction(formData: FormData) {
         defaultDayWeekStarts: "monday",
       },
     });
+    const roles = await createDefaultRoles(tx, created.id);
+    const administrator =
+      roles.find((role) => role.systemKey === "administrator") ?? roles[roles.length - 1]!;
     await tx.directory.create({
       data: {
         companyId: created.id,
         userId: current.id,
         internalId: "",
+        roleId: administrator.id,
       },
-    });
-    await tx.admin.create({
-      data: { companyId: created.id, userId: current.id },
     });
     const team = await tx.team.create({
       data: {
@@ -63,7 +65,7 @@ export async function createCompanyAction(formData: FormData) {
 
 export async function updateCompanyAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "company", "edit");
     const name = String(formData.get("name") ?? "").trim();
     const defaultTimezone = String(formData.get("defaultTimezone") ?? "UTC");
     const defaultDayWeekStarts = String(
@@ -86,7 +88,7 @@ export async function updateCompanyAction(companyId: string, formData: FormData)
 
 export async function updateSchedulingRulesAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "scheduling", "edit");
     const lockHistoricalSchedule = String(formData.get("lockHistoricalSchedule") ?? "") === "true";
     const laborState = String(formData.get("laborState") ?? "").trim().toUpperCase();
     let mealRules: Prisma.InputJsonValue | undefined;
@@ -138,7 +140,7 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
 
 export async function updateMmsSettingsAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "mms", "edit");
     const enabled = String(formData.get("mmsEnabled") ?? "") === "true";
     const accountSid = String(formData.get("mmsAccountSid") ?? "").trim();
     const authToken = String(formData.get("mmsAuthToken") ?? "").trim();

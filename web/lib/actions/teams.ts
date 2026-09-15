@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, assertTeamInCompany, requireCompanyAdmin } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requirePermission } from "@/lib/permissions";
 
 export async function createTeamAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "teams", "edit");
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) return { error: "Company not found." };
 
@@ -36,7 +36,7 @@ export async function updateTeamAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "teams", "edit");
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const timezone = String(formData.get("timezone") ?? "UTC");
@@ -63,7 +63,7 @@ export async function createJobAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "teams", "edit");
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
@@ -87,7 +87,7 @@ export async function updateJobAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "teams", "edit");
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");

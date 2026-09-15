@@ -4,11 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { LogoutButton } from "@/components/app/logout-button";
+import type { MenuCapabilities } from "@/lib/roles";
 
 export type AppMenuCompany = {
   id: string;
   name: string;
-  isAdmin: boolean;
+  capabilities: MenuCapabilities;
   teams: { id: string; name: string }[];
 };
 
@@ -32,38 +33,42 @@ function CompanyNav({
   const pad = nested ? "pl-5" : "";
   return (
     <>
-      <Link
-        href={`/app/companies/${company.id}/employees`}
-        className={linkClass(pad)}
-        onClick={onNavigate}
-      >
-        Employees
-      </Link>
-      {company.teams.map((team) => {
-        const key = `${company.id}-${team.id}`;
-        return (
-          <div key={team.id} className="border-t border-border">
-            <button
-              type="button"
-              className={`flex w-full items-center justify-between py-2 text-left text-sm font-medium hover:bg-black/5 ${nested ? "px-5" : "px-3"}`}
-              onClick={() => toggle(key)}
-            >
-              {team.name}
-              <span className="text-muted">{openSection === key ? "−" : "+"}</span>
-            </button>
-            {openSection === key ? (
-              <Link
-                href={`/app/companies/${company.id}/teams/${team.id}/scheduling`}
-                className={`block pb-3 text-sm font-medium text-teal hover:underline ${nested ? "px-5" : "px-3"}`}
-                onClick={onNavigate}
-              >
-                Scheduling
-              </Link>
-            ) : null}
-          </div>
-        );
-      })}
-      {company.isAdmin ? (
+      {company.capabilities.employees ? (
+        <Link
+          href={`/app/companies/${company.id}/employees`}
+          className={linkClass(pad)}
+          onClick={onNavigate}
+        >
+          Employees
+        </Link>
+      ) : null}
+      {company.capabilities.schedule
+        ? company.teams.map((team) => {
+            const key = `${company.id}-${team.id}`;
+            return (
+              <div key={team.id} className="border-t border-border">
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between py-2 text-left text-sm font-medium hover:bg-black/5 ${nested ? "px-5" : "px-3"}`}
+                  onClick={() => toggle(key)}
+                >
+                  {team.name}
+                  <span className="text-muted">{openSection === key ? "−" : "+"}</span>
+                </button>
+                {openSection === key ? (
+                  <Link
+                    href={`/app/companies/${company.id}/teams/${team.id}/scheduling`}
+                    className={`block pb-3 text-sm font-medium text-teal hover:underline ${nested ? "px-5" : "px-3"}`}
+                    onClick={onNavigate}
+                  >
+                    Scheduling
+                  </Link>
+                ) : null}
+              </div>
+            );
+          })
+        : null}
+      {company.capabilities.settings ? (
         <Link
           href={`/app/companies/${company.id}/settings`}
           className={`${linkClass(pad)} border-t border-border`}
@@ -78,12 +83,12 @@ function CompanyNav({
 
 export function AppMenu({
   companyId,
-  isAdmin,
+  capabilities,
   teams = [],
   companies = [],
 }: {
   companyId?: string;
-  isAdmin?: boolean;
+  capabilities?: MenuCapabilities;
   teams?: { id: string; name: string }[];
   companies?: AppMenuCompany[];
 }) {
@@ -93,7 +98,7 @@ export function AppMenu({
     ? {
         id: companyId,
         name: "",
-        isAdmin: Boolean(isAdmin),
+        capabilities: capabilities ?? { employees: false, schedule: false, settings: false },
         teams,
       }
     : null;

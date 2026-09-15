@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { AppMenu, type AppMenuCompany } from "@/components/app/app-menu";
+import type { MenuCapabilities } from "@/lib/roles";
 
 export async function AppShell({
   children,
   companyId,
   companyName,
   teams,
-  isAdmin,
+  capabilities,
   companies,
 }: {
   children: React.ReactNode;
   companyId?: string;
   companyName?: string;
   teams?: { id: string; name: string }[];
-  isAdmin?: boolean;
+  capabilities?: MenuCapabilities;
   companies?: AppMenuCompany[];
 }) {
   const session = await auth();
@@ -27,7 +28,7 @@ export async function AppShell({
           <div className="flex items-center gap-3">
             <AppMenu
               companyId={companyId}
-              isAdmin={isAdmin}
+              capabilities={capabilities}
               teams={teams}
               companies={companies}
             />

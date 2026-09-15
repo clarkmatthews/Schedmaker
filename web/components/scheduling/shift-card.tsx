@@ -34,6 +34,7 @@ export function ShiftCard({
   color,
   timezone,
   compact = false,
+  canEdit = true,
   onOpen,
 }: {
   shift: CalendarShift;
@@ -41,29 +42,36 @@ export function ShiftCard({
   color: string;
   timezone: string;
   compact?: boolean;
-  onOpen: (shift: CalendarShift) => void;
+  canEdit?: boolean;
+  onOpen?: (shift: CalendarShift) => void;
 }) {
   return (
     <button
       type="button"
-      draggable
+      draggable={canEdit}
       className={cn(
         "relative block h-full w-full rounded px-2 text-left text-xs text-white",
         compact ? "py-0.5" : "py-1",
         shift.published
           ? "border border-transparent"
           : "border border-dashed border-white/80 opacity-80",
+        !canEdit && "cursor-default",
       )}
       style={{ backgroundColor: `#${shift.jobColor ?? color}` }}
       onClick={(event) => {
         event.stopPropagation();
-        onOpen(shift);
+        onOpen?.(shift);
       }}
       onDragOver={(event) => {
+        if (!canEdit) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
       }}
       onDragStart={(event) => {
+        if (!canEdit) {
+          event.preventDefault();
+          return;
+        }
         const rect = event.currentTarget.getBoundingClientRect();
         const offsetPx = event.clientX - rect.left;
         beginShiftDrag(offsetPx);

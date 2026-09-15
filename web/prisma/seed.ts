@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { addDays, setHours, startOfWeek } from "date-fns";
 import { CA_MEAL_RULES, CA_OVERTIME_RULES } from "../lib/scheduling/labor-rules";
 import { CA_MINOR_RULES } from "../lib/scheduling/minor-rules";
+import { ADMINISTRATOR_SYSTEM_KEY, ensureDefaultRoles } from "../lib/roles";
 
 const prisma = new PrismaClient();
 
@@ -122,11 +123,21 @@ async function main() {
     }),
   );
 
+  const roles = await ensureDefaultRoles(prisma, company.id);
+  const administrator =
+    roles.find((role) => role.systemKey === ADMINISTRATOR_SYSTEM_KEY) ?? roles[0]!;
+  const employee =
+    roles.find((role) => role.name === "Employee") ??
+    roles.find((role) => role.systemKey !== ADMINISTRATOR_SYSTEM_KEY) ??
+    administrator;
+
   for (const user of [support, manager, alice, bob, cara]) {
+    const roleId =
+      user.id === manager.id || user.id === support.id ? administrator.id : employee.id;
     await prisma.directory.upsert({
       where: { companyId_userId: { companyId: company.id, userId: user.id } },
-      update: {},
-      create: { companyId: company.id, userId: user.id, internalId: "" },
+      update: { roleId },
+      create: { companyId: company.id, userId: user.id, internalId: "", roleId },
     });
     await prisma.worker.upsert({
       where: { teamId_userId: { teamId: team.id, userId: user.id } },
@@ -134,17 +145,6 @@ async function main() {
       create: { teamId: team.id, userId: user.id },
     });
   }
-
-  await prisma.admin.upsert({
-    where: { companyId_userId: { companyId: company.id, userId: manager.id } },
-    update: {},
-    create: { companyId: company.id, userId: manager.id },
-  });
-  await prisma.admin.upsert({
-    where: { companyId_userId: { companyId: company.id, userId: support.id } },
-    update: {},
-    create: { companyId: company.id, userId: support.id },
-  });
 
   const restaurantHours =
     (await prisma.hoursTemplate.findFirst({

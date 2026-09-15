@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createEmployeeAction,
-  setEmployeeAdminAction,
   setEmployeeDeactivatedAction,
   setEmployeeMealWaiverAction,
+  setEmployeeRoleAction,
   setEmployeeTeamAction,
   updateEmployeeAction,
 } from "@/lib/actions/employees";
-import type { EmployeeRecord } from "@/lib/employees";
+import type { EmployeeRecord, EmployeeRoleOption } from "@/lib/employees";
+import { ADMINISTRATOR_SYSTEM_KEY } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
@@ -20,14 +21,22 @@ export function EmployeeManager({
   companyId,
   employees,
   teams,
+  roles,
   selectedId,
   showDeactivated,
+  currentUserId,
+  canEdit,
+  canAssignAdministrator,
 }: {
   companyId: string;
   employees: EmployeeRecord[];
   teams: { id: string; name: string }[];
+  roles: EmployeeRoleOption[];
   selectedId?: string;
   showDeactivated: boolean;
+  currentUserId: string;
+  canEdit: boolean;
+  canAssignAdministrator: boolean;
 }) {
   const router = useRouter();
   const selectedEmployee = employees.find((e) => e.userId === selectedId) ?? null;
@@ -62,9 +71,11 @@ export function EmployeeManager({
               />
               Show deactivated
             </label>
-            <Button type="button" onClick={() => setCreating(true)}>
-              Add employee
-            </Button>
+            {canEdit ? (
+              <Button type="button" onClick={() => setCreating(true)}>
+                Add employee
+              </Button>
+            ) : null}
           </div>
         </div>
         <table className="w-full text-left text-sm">
@@ -73,7 +84,7 @@ export function EmployeeManager({
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Email</th>
               <th className="px-4 py-2 font-medium">Teams</th>
-              <th className="px-4 py-2 font-medium">Admin</th>
+              <th className="px-4 py-2 font-medium">Role</th>
               <th className="px-4 py-2 font-medium">Status</th>
             </tr>
           </thead>
@@ -95,7 +106,7 @@ export function EmployeeManager({
                     .map((t) => t.name)
                     .join(", ") || "—"}
                 </td>
-                <td className="px-4 py-2">{employee.admin ? "Yes" : "No"}</td>
+                <td className="px-4 py-2">{employee.roleName}</td>
                 <td className="px-4 py-2">
                   {employee.deactivated ? "Deactivated" : "Active"}
                 </td>
@@ -185,6 +196,7 @@ export function EmployeeManager({
             key={selected.userId}
             className="space-y-3"
             action={async (formData) => {
+              if (!canEdit) return;
               const result = await updateEmployeeAction(
                 companyId,
                 selected.userId,
@@ -230,7 +242,7 @@ export function EmployeeManager({
             </div>
             <div>
               <Label htmlFor="internalId">Internal ID</Label>
-              <Input id="internalId" name="internalId" defaultValue={selected.internalId} />
+              <Input id="internalId" name="internalId" defaultValue={selected.internalId} disabled={!canEdit} />
             </div>
             <div>
               <Label htmlFor="hourlyRate">Hourly rate</Label>
@@ -242,6 +254,7 @@ export function EmployeeManager({
                 step="0.01"
                 placeholder="0.00"
                 defaultValue={selected.hourlyRate ?? ""}
+                disabled={!canEdit}
               />
             </div>
             <div>
@@ -251,29 +264,54 @@ export function EmployeeManager({
                 name="birthDate"
                 type="date"
                 defaultValue={selected.birthDate ?? ""}
+                disabled={!canEdit}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                defaultChecked={selected.admin}
+            <div>
+              <Label htmlFor="roleId">Role</Label>
+              <Select
+                id="roleId"
+                name="roleId"
+                defaultValue={selected.roleId}
+                disabled={!canEdit || selected.userId === currentUserId}
                 onChange={async (event) => {
-                  await setEmployeeAdminAction(
+                  const result = await setEmployeeRoleAction(
                     companyId,
                     selected.userId,
-                    event.target.checked,
+                    event.target.value,
                   );
-                  router.refresh();
+                  if (result.error) setError(result.error);
+                  else {
+                    setError(null);
+                    router.refresh();
+                  }
                 }}
-              />
-              Company admin
-            </label>
+              >
+                {roles
+                  .filter(
+                    (role) =>
+                      canAssignAdministrator ||
+                      role.systemKey !== ADMINISTRATOR_SYSTEM_KEY ||
+                      role.id === selected.roleId,
+                  )
+                  .map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+              </Select>
+              {selected.userId === currentUserId ? (
+                <p className="mt-1 text-xs text-muted">You cannot change your own role.</p>
+              ) : null}
+            </div>
             <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
                 className="mt-1"
                 defaultChecked={selected.mealBreakWaiver}
+                disabled={!canEdit}
                 onChange={async (event) => {
+                  if (!canEdit) return;
                   await setEmployeeMealWaiverAction(
                     companyId,
                     selected.userId,
@@ -297,7 +335,9 @@ export function EmployeeManager({
                   <input
                     type="checkbox"
                     defaultChecked={selected.teamIds.includes(team.id)}
+                    disabled={!canEdit}
                     onChange={async (event) => {
+                      if (!canEdit) return;
                       await setEmployeeTeamAction(
                         companyId,
                         selected.userId,
@@ -313,30 +353,34 @@ export function EmployeeManager({
             </div>
             <FieldError message={error} />
             <div className="flex flex-wrap gap-2">
-              <Button type="submit">Save</Button>
-              <Button
-                type="button"
-                variant={selected.deactivated ? "primary" : "outline"}
-                onClick={async () => {
-                  const nextDeactivated = !selected.deactivated;
-                  const result = await setEmployeeDeactivatedAction(
-                    companyId,
-                    selected.userId,
-                    nextDeactivated,
-                  );
-                  if (result.error) setError(result.error);
-                  else {
-                    setError(null);
-                    if (nextDeactivated && !showDeactivated) {
-                      router.push(employeeHref());
-                    } else {
-                      router.refresh();
-                    }
-                  }
-                }}
-              >
-                {selected.deactivated ? "Reactivate" : "Deactivate"}
-              </Button>
+              {canEdit ? (
+                <>
+                  <Button type="submit">Save</Button>
+                  <Button
+                    type="button"
+                    variant={selected.deactivated ? "primary" : "outline"}
+                    onClick={async () => {
+                      const nextDeactivated = !selected.deactivated;
+                      const result = await setEmployeeDeactivatedAction(
+                        companyId,
+                        selected.userId,
+                        nextDeactivated,
+                      );
+                      if (result.error) setError(result.error);
+                      else {
+                        setError(null);
+                        if (nextDeactivated && !showDeactivated) {
+                          router.push(employeeHref());
+                        } else {
+                          router.refresh();
+                        }
+                      }
+                    }}
+                  >
+                    {selected.deactivated ? "Reactivate" : "Deactivate"}
+                  </Button>
+                </>
+              ) : null}
               <Link
                 href={employeeHref()}
                 className="rounded-md px-3 py-2 text-sm hover:bg-black/5"

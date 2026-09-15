@@ -119,9 +119,9 @@ export function DayView({
   timezone: string;
   hoursTemplate: HoursTemplateView | null;
   shiftsFor: (rowId: string, day: Date) => CalendarShift[];
-  onCreate: (day: Date, rowId: string, startSlot: number) => void;
-  onOpen: (shift: CalendarShift) => void;
-  onPlace: (shiftId: string, day: Date, rowId: string, copy: boolean, startSlot: number) => void;
+  onCreate?: (day: Date, rowId: string, startSlot: number) => void;
+  onOpen?: (shift: CalendarShift) => void;
+  onPlace?: (shiftId: string, day: Date, rowId: string, copy: boolean, startSlot: number) => void;
   overtimeEnabled?: boolean;
   copyLastTitle?: string;
   onCopyLast?: () => void;
@@ -227,10 +227,12 @@ export function DayView({
                   className={`relative flex-1 ${closed ? "" : "cursor-pointer"}`}
                   style={{ ...background, height: layout.height }}
                   onDragOver={(event) => {
+                    if (!onPlace) return;
                     event.preventDefault();
                     event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
                   }}
                   onDrop={(event) => {
+                    if (!onPlace) return;
                     event.preventDefault();
                     if (closed) return;
                     const shiftId =
@@ -271,6 +273,7 @@ export function DayView({
                             width: `${((band.end - band.start) / span) * 100}%`,
                           }}
                           onClick={(event) => {
+                            if (!onCreate) return;
                             const track = trackElement(event.currentTarget);
                             if (!track) return;
                             onCreate(
@@ -285,10 +288,12 @@ export function DayView({
                             );
                           }}
                           onDragOver={(event) => {
+                            if (!onPlace) return;
                             event.preventDefault();
                             event.dataTransfer.dropEffect = event.altKey ? "copy" : "move";
                           }}
                           onDrop={(event) => {
+                            if (!onPlace) return;
                             event.preventDefault();
                             event.stopPropagation();
                             const track = trackElement(event.currentTarget);
@@ -312,9 +317,11 @@ export function DayView({
                             );
                           }}
                         >
-                          <div className="pointer-events-none hidden h-full items-center justify-center text-lg text-teal group-hover:flex">
-                            +
-                          </div>
+                          {onCreate ? (
+                            <div className="pointer-events-none hidden h-full items-center justify-center text-lg text-teal group-hover:flex">
+                              +
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                   {rowShifts.map((shift, index) => {
@@ -340,6 +347,7 @@ export function DayView({
                           color={row.color}
                           timezone={timezone}
                           compact
+                          canEdit={Boolean(onPlace)}
                           onOpen={onOpen}
                         />
                       </div>

@@ -6,7 +6,8 @@ import { parseBirthDate, parseHourlyRate } from "@/lib/employees";
 import { emptyToNull } from "@/lib/utils";
 import { issueEmailToken } from "@/lib/tokens";
 import { notifyActivation, notifyOnboardWorker } from "@/lib/notifications";
-import { ActionError, assertTeamInCompany, requireCompanyAdmin, requireSession } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, can, requirePermission, requireSession } from "@/lib/permissions";
+import { ADMINISTRATOR_SYSTEM_KEY, defaultEmployeeRoleId } from "@/lib/roles";
 
 function appUrl() {
   return process.env.AUTH_URL ?? "http://localhost:3000";
@@ -39,7 +40,7 @@ async function getOrCreateUser(params: {
 
 export async function createEmployeeAction(companyId: string, formData: FormData) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "employees", "edit");
     const email = String(formData.get("email") ?? "")
       .trim()
       .toLowerCase();
@@ -71,6 +72,9 @@ export async function createEmployeeAction(companyId: string, formData: FormData
       return { error: "That person is already in this company." };
     }
 
+    const roleId = await defaultEmployeeRoleId(prisma, companyId);
+    if (!roleId) return { error: "Create a role before adding employees." };
+
     await prisma.directory.create({
       data: {
         companyId,
@@ -78,6 +82,7 @@ export async function createEmployeeAction(companyId: string, formData: FormData
         internalId,
         mealBreakWaiver,
         hourlyRate: parsedRate.rate,
+        roleId,
       },
     });
 
@@ -115,7 +120,7 @@ export async function updateEmployeeAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "employees", "edit");
     const target = await prisma.user.findUnique({ where: { id: userId } });
     const directory = await prisma.directory.findUnique({
       where: { companyId_userId: { companyId, userId } },
@@ -162,32 +167,60 @@ export async function updateEmployeeAction(
   }
 }
 
-export async function setEmployeeAdminAction(
+export async function setEmployeeRoleAction(
   companyId: string,
   userId: string,
-  makeAdmin: boolean,
+  roleId: string,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    const { user, access } = await requirePermission(companyId, "employees", "edit");
+    if (!access.support && user.id === userId) {
+      return { error: "You cannot change your own role." };
+    }
     const directory = await prisma.directory.findUnique({
       where: { companyId_userId: { companyId, userId } },
+      include: { role: true },
     });
     if (!directory) return { error: "Employee not found." };
 
-    if (makeAdmin) {
-      await prisma.admin.upsert({
-        where: { companyId_userId: { companyId, userId } },
-        update: {},
-        create: { companyId, userId },
-      });
-    } else {
-      await prisma.admin.deleteMany({ where: { companyId, userId } });
+    const nextRole = await prisma.role.findFirst({
+      where: { id: roleId, companyId },
+    });
+    if (!nextRole) return { error: "Role not found." };
+
+    if (
+      nextRole.systemKey === ADMINISTRATOR_SYSTEM_KEY &&
+      !can(access, "roles", "edit")
+    ) {
+      return { error: "Only role managers can assign Administrator." };
     }
+
+    if (
+      directory.role.systemKey === ADMINISTRATOR_SYSTEM_KEY &&
+      nextRole.systemKey !== ADMINISTRATOR_SYSTEM_KEY
+    ) {
+      const remaining = await prisma.directory.count({
+        where: {
+          companyId,
+          role: { systemKey: ADMINISTRATOR_SYSTEM_KEY },
+          NOT: { userId },
+        },
+      });
+      if (remaining === 0) {
+        return { error: "The company must keep at least one Administrator." };
+      }
+    }
+
+    await prisma.directory.update({
+      where: { companyId_userId: { companyId, userId } },
+      data: { roleId },
+    });
     revalidatePath(`/app/companies/${companyId}/employees`);
+    revalidatePath(`/app/companies/${companyId}`, "layout");
     return { ok: true as const };
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };
-    return { error: "Could not update admin status." };
+    return { error: "Could not update role." };
   }
 }
 
@@ -198,7 +231,7 @@ export async function setEmployeeTeamAction(
   assigned: boolean,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "employees", "edit");
     await assertTeamInCompany(companyId, teamId);
 
     if (assigned) {
@@ -226,7 +259,7 @@ export async function setEmployeeDeactivatedAction(
 ) {
   try {
     const current = await requireSession();
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "employees", "edit");
     if (deactivated && current.id === userId) {
       return { error: "You cannot deactivate your own account." };
     }
@@ -254,7 +287,7 @@ export async function setEmployeeMealWaiverAction(
   mealBreakWaiver: boolean,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "employees", "edit");
     const directory = await prisma.directory.findUnique({
       where: { companyId_userId: { companyId, userId } },
     });

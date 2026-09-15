@@ -57,7 +57,7 @@ export function CalendarShell({
   overtimeEnabled = false,
   responsibilitiesEnabled = true,
   hourlyRates = {},
-  isAdmin = false,
+  canEdit = false,
 }: {
   companyId: string;
   teamId: string;
@@ -75,7 +75,7 @@ export function CalendarShell({
   overtimeEnabled?: boolean;
   responsibilitiesEnabled?: boolean;
   hourlyRates?: Record<string, number>;
-  isAdmin?: boolean;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const date = parseISO(dateIso);
@@ -91,16 +91,15 @@ export function CalendarShell({
 
   const rows = useMemo(() => {
     if (viewBy === "employee") {
-      return [
-        { id: "", label: "Unassigned", color: "5B5B5B" },
-        ...workers.map((w) => ({ id: w.id, label: w.name, color: "48B7AB" })),
-      ];
+      const employeeRows = workers.map((w) => ({ id: w.id, label: w.name, color: "48B7AB" }));
+      if (!canEdit) return employeeRows;
+      return [{ id: "", label: "Unassigned", color: "5B5B5B" }, ...employeeRows];
     }
     return [
       { id: "", label: "No job", color: "5B5B5B" },
       ...jobs.map((j) => ({ id: j.id, label: j.name, color: j.color })),
     ];
-  }, [viewBy, workers, jobs]);
+  }, [viewBy, workers, jobs, canEdit]);
 
   function shiftsFor(rowId: string, day: Date) {
     return shifts.filter((shift) => {
@@ -321,27 +320,29 @@ export function CalendarShell({
             <option value="employee">View by employee</option>
             <option value="job">View by job</option>
           </Select>
-          <Button
-            variant={allPublished ? "outline" : "primary"}
-            onClick={async () => {
-              await bulkPublishShiftsAction(
-                companyId,
-                teamId,
-                !allPublished,
-                rangeStartIso,
-                rangeEndIso,
-              );
-              router.refresh();
-            }}
-          >
-            {allPublished
-              ? view === "day"
-                ? "Unpublish day"
-                : "Unpublish week"
-              : view === "day"
-                ? "Publish day"
-                : "Publish week"}
-          </Button>
+          {canEdit ? (
+            <Button
+              variant={allPublished ? "outline" : "primary"}
+              onClick={async () => {
+                await bulkPublishShiftsAction(
+                  companyId,
+                  teamId,
+                  !allPublished,
+                  rangeStartIso,
+                  rangeEndIso,
+                );
+                router.refresh();
+              }}
+            >
+              {allPublished
+                ? view === "day"
+                  ? "Unpublish day"
+                  : "Unpublish week"
+                : view === "day"
+                  ? "Publish day"
+                  : "Publish week"}
+            </Button>
+          ) : null}
           {view === "week" ? (
             <Button
               type="button"
@@ -370,13 +371,13 @@ export function CalendarShell({
           viewBy={viewBy}
           timezone={timezone}
           shiftsFor={shiftsFor}
-          onCreate={openCreate}
-          onOpen={openEdit}
-          onPlace={place}
+          onCreate={canEdit ? openCreate : undefined}
+          onOpen={canEdit ? openEdit : undefined}
+          onPlace={canEdit ? place : undefined}
           hoursTemplate={hoursTemplate}
           overtimeEnabled={overtimeEnabled}
-          copyLastTitle={isAdmin ? copyLastTitle : undefined}
-          onCopyLast={isAdmin ? () => setCopyConfirmOpen(true) : undefined}
+          copyLastTitle={canEdit ? copyLastTitle : undefined}
+          onCopyLast={canEdit ? () => setCopyConfirmOpen(true) : undefined}
         />
       ) : (
         <WeekView
@@ -385,22 +386,24 @@ export function CalendarShell({
           viewBy={viewBy}
           timezone={timezone}
           shiftsFor={shiftsFor}
-          onCreate={openCreate}
-          onOpen={openEdit}
-          onPlace={place}
+          onCreate={canEdit ? openCreate : undefined}
+          onOpen={canEdit ? openEdit : undefined}
+          onPlace={canEdit ? place : undefined}
           onSelectDay={(day) => goTo("day", day)}
           overtimeEnabled={overtimeEnabled}
-          copyLastTitle={isAdmin ? copyLastTitle : undefined}
-          onCopyLast={isAdmin ? () => setCopyConfirmOpen(true) : undefined}
+          copyLastTitle={canEdit ? copyLastTitle : undefined}
+          onCopyLast={canEdit ? () => setCopyConfirmOpen(true) : undefined}
         />
       )}
 
-      <LaborSummary
-        shifts={shifts}
-        overtimeEnabled={overtimeEnabled}
-        hourlyRates={hourlyRates}
-        timezone={timezone}
-      />
+      {canEdit ? (
+        <LaborSummary
+          shifts={shifts}
+          overtimeEnabled={overtimeEnabled}
+          hourlyRates={hourlyRates}
+          timezone={timezone}
+        />
+      ) : null}
 
       {copyConfirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

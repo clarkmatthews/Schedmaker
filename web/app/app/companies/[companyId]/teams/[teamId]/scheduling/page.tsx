@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getCompanyAccess } from "@/lib/permissions";
+import { can, getCompanyAccess } from "@/lib/permissions";
 import { dayRange, parseDateParam, weekRange } from "@/lib/scheduling/range";
 import { parseView } from "@/lib/scheduling/views";
 import { CalendarShell } from "@/components/scheduling/calendar-shell";
@@ -24,9 +24,10 @@ export default async function SchedulingPage({
   const { companyId, teamId } = await params;
   const { view: viewParam, date: dateParam, week } = await searchParams;
   const session = await auth();
-  const access = session?.user?.id
-    ? await getCompanyAccess(session.user.id, companyId)
-    : { admin: false, support: false };
+  if (!session?.user?.id) redirect("/");
+  const access = await getCompanyAccess(session.user.id, companyId);
+  if (!can(access, "schedule", "view")) redirect("/account");
+  const canEditSchedule = can(access, "schedule", "edit");
   const team = await prisma.team.findFirst({
     where: { id: teamId, companyId },
     include: {
@@ -60,7 +61,13 @@ export default async function SchedulingPage({
   const weekBounds = weekRange(anchor, team.dayWeekStarts);
   const bounds = view === "day" ? dayRange(anchor) : weekBounds;
   const shifts = await prisma.shift.findMany({
-    where: { teamId, start: { gte: weekBounds.start, lt: weekBounds.end } },
+    where: {
+      teamId,
+      start: { gte: weekBounds.start, lt: weekBounds.end },
+      ...(canEditSchedule
+        ? {}
+        : { userId: session.user.id, published: true }),
+    },
     include: {
       user: { include: { directoryEntries: { where: { companyId } } } },
       job: true,
@@ -83,6 +90,7 @@ export default async function SchedulingPage({
       hoursTemplate={hoursTemplate}
       workers={team.workers
         .filter((worker) => !worker.user.directoryEntries.some((entry) => entry.deactivated))
+        .filter((worker) => canEditSchedule || worker.userId === session.user.id)
         .map((worker) => ({
           id: worker.userId,
           name: worker.user.name || worker.user.email,
@@ -97,17 +105,23 @@ export default async function SchedulingPage({
         name: duty.name,
         archived: duty.archived,
       }))}
-      isAdmin={Boolean(access.admin || access.support)}
+      canEdit={canEditSchedule}
       overtimeEnabled={Boolean(overtimeRules?.enabled)}
       responsibilitiesEnabled={team.company.responsibilitiesEnabled}
-      hourlyRates={Object.fromEntries(
-        team.workers.flatMap((worker) => {
-          const rate = worker.user.directoryEntries[0]?.hourlyRate;
-          if (rate == null) return [];
-          const value = Number(rate);
-          return Number.isFinite(value) && value > 0 ? [[worker.userId, value] as const] : [];
-        }),
-      )}
+      hourlyRates={
+        canEditSchedule
+          ? Object.fromEntries(
+              team.workers.flatMap((worker) => {
+                const rate = worker.user.directoryEntries[0]?.hourlyRate;
+                if (rate == null) return [];
+                const value = Number(rate);
+                return Number.isFinite(value) && value > 0
+                  ? [[worker.userId, value] as const]
+                  : [];
+              }),
+            )
+          : {}
+      }
       shifts={(() => {
         const mapped = shifts.map((shift) => {
           const assignedDeactivated = Boolean(

@@ -3,7 +3,7 @@
 import { addDays } from "date-fns";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { ActionError, assertTeamInCompany, requireCompanyAdmin, requireTeamWorker } from "@/lib/permissions";
+import { ActionError, assertTeamInCompany, requirePermission } from "@/lib/permissions";
 import {
   notifyShiftCreated,
   notifyShiftDeleted,
@@ -231,7 +231,7 @@ export async function createShiftsAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
     const days = parseDays(formData);
     const fallbackDay = String(formData.get("day") ?? "");
@@ -306,7 +306,7 @@ export async function updateShiftAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
@@ -370,7 +370,7 @@ export async function placeShiftAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
@@ -450,7 +450,7 @@ export async function copyShiftAction(
   formData: FormData,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
@@ -527,7 +527,7 @@ export async function copyLastPeriodAction(
   rangeEndIso: string,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
 
     const targetStart = new Date(rangeStartIso);
@@ -685,7 +685,8 @@ export async function deleteShiftAction(
   shiftId: string,
 ) {
   try {
-    await requireTeamWorker(companyId, teamId);
+    await requirePermission(companyId, "schedule", "edit");
+    await assertTeamInCompany(companyId, teamId);
     const orig = await prisma.shift.findFirst({
       where: { id: shiftId, teamId },
     });
@@ -711,7 +712,7 @@ export async function bulkPublishShiftsAction(
   endIso: string,
 ) {
   try {
-    await requireCompanyAdmin(companyId);
+    await requirePermission(companyId, "schedule", "edit");
     await assertTeamInCompany(companyId, teamId);
     const start = new Date(startIso);
     const end = new Date(endIso);

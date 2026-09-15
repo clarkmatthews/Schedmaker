@@ -1,23 +1,27 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/settings/sections";
+import { SETTINGS_SECTIONS, type SettingsSection, type SettingsSectionId } from "@/lib/settings/sections";
 import { cn } from "@/lib/utils";
 
 export function SettingsAccordion({
   companyId,
   section,
   panels,
+  sections = SETTINGS_SECTIONS,
+  readOnly,
 }: {
   companyId: string;
   section: SettingsSectionId;
-  panels: Record<SettingsSectionId, React.ReactNode>;
+  panels: Partial<Record<SettingsSectionId, React.ReactNode>>;
+  sections?: SettingsSection[];
+  readOnly?: Partial<Record<SettingsSectionId, boolean>>;
 }) {
   const router = useRouter();
 
   return (
     <div className="space-y-3">
-      {SETTINGS_SECTIONS.map((item) => {
+      {sections.map((item) => {
         const open = item.id === section;
         return (
           <section
@@ -37,7 +41,13 @@ export function SettingsAccordion({
               {item.label}
               <span>{open ? "−" : "+"}</span>
             </button>
-            {open ? <div className="border-t border-border p-5">{panels[item.id]}</div> : null}
+            {open ? (
+              <div className="border-t border-border p-5">
+                <fieldset disabled={Boolean(readOnly?.[item.id])} className="min-w-0 space-y-4">
+                  {panels[item.id]}
+                </fieldset>
+              </div>
+            ) : null}
           </section>
         );
       })}

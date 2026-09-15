@@ -1,3 +1,9 @@
+export type EmployeeRoleOption = {
+  id: string;
+  name: string;
+  systemKey: string | null;
+};
+
 export type EmployeeRecord = {
   userId: string;
   name: string;
@@ -9,7 +15,8 @@ export type EmployeeRecord = {
   mealBreakWaiver: boolean;
   birthDate: string | null;
   hourlyRate: number | null;
-  admin: boolean;
+  roleId: string;
+  roleName: string;
   teamIds: string[];
 };
 
@@ -34,17 +41,19 @@ export function parseHourlyRate(value: string): { rate: number | null; error?: s
   const raw = value.trim();
   if (!raw) return { rate: null };
   const n = Number(raw);
-  if (!Number.isFinite(n) || n < 0) return { error: "Enter a valid hourly rate." };
+  if (!Number.isFinite(n) || n < 0) return { rate: null, error: "Enter a valid hourly rate." };
   return { rate: Math.round(n * 100) / 100 };
 }
 
 export function mapDirectoryEmployee(
   entry: {
     userId: string;
+    roleId: string;
     internalId: string;
     deactivated: boolean;
     mealBreakWaiver: boolean;
     hourlyRate: unknown;
+    role: { name: string };
     user: {
       name: string;
       email: string;
@@ -54,7 +63,6 @@ export function mapDirectoryEmployee(
       workerOf: { teamId: string }[];
     };
   },
-  adminIds: Set<string>,
   teamIds: string[],
 ): EmployeeRecord {
   return {
@@ -72,7 +80,8 @@ export function mapDirectoryEmployee(
       const n = Number(entry.hourlyRate);
       return Number.isFinite(n) ? n : null;
     })(),
-    admin: adminIds.has(entry.userId),
+    roleId: entry.roleId,
+    roleName: entry.role.name,
     teamIds: entry.user.workerOf
       .filter((worker) => teamIds.includes(worker.teamId))
       .map((worker) => worker.teamId),
