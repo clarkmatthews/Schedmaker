@@ -167,6 +167,12 @@ Name, default timezone, and the day the workweek starts.
 
 ![Company settings accordion](docs/screenshots/settings-company.png)
 
+Role configuration
+
+<img width="1183" height="721" alt="image" src="https://github.com/user-attachments/assets/968933e5-55b2-4c2d-aacc-ed09c04e218a" />
+
+
+
 ---
 
 Schedmaker is an [MIT-licensed](LICENSE) project. It started from [Staffjoy](https://github.com/Staffjoy/v2), the open-source employee scheduler created by StaffJoy, Inc.
