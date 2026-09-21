@@ -130,25 +130,25 @@ docker compose up -d
 
 People down the side, days across the top, Hours/OT on the right, and a labor overview under the grid. Meal-rule warnings appear as a red mark on the shift.
 
-<img width="1202" height="722" alt="image" src="https://github.com/user-attachments/assets/4f90f27f-38bb-40c1-80ff-5a3fa0e717a3" />
+![Week calendar](docs/screenshots/week-view.png)
 
 ### Day view
 
 A 15-minute timeline with grey hours-template bands, compact shift bars, and per-hour totals along the bottom.
 
-<img width="1204" height="694" alt="image" src="https://github.com/user-attachments/assets/106695b4-c31b-4305-9fdc-c7bd7bc0bb59" />
+![Day calendar](docs/screenshots/day-view.png)
 
 ### Rule Warnings Described
 
-<img width="1201" height="809" alt="image" src="https://github.com/user-attachments/assets/5975ec62-4f5f-418e-9cf5-73ef2b0dcb8c" />
+![Rule violations](docs/screenshots/rule-violations.png)
 
 ### Estimated labor breakdown by job $
 
-<img width="1208" height="799" alt="image" src="https://github.com/user-attachments/assets/4d2c2111-1b6a-4d6d-8292-2bf14c7fe896" />
+![Estimated labor](docs/screenshots/estimated-labor.png)
 
 ### Overtime scheduled view
 
-<img width="1204" height="813" alt="image" src="https://github.com/user-attachments/assets/909bb6e6-18c5-4587-99e8-b53c9ac5c76d" />
+![Overtime](docs/screenshots/overtime.png)
 
 ### Scheduling settings
 
@@ -168,11 +168,11 @@ Name, default timezone, and the day the workweek starts.
 
 ![Company settings accordion](docs/screenshots/settings-company.png)
 
-Role configuration
+### Role configuration
 
-<img width="1183" height="721" alt="image" src="https://github.com/user-attachments/assets/968933e5-55b2-4c2d-aacc-ed09c04e218a" />
+None, View, or Edit for each section, including the ability to create companies.
 
-
+![Role configuration](docs/screenshots/settings-roles.png)
 
 ---
 
