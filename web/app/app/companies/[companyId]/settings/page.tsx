@@ -125,7 +125,6 @@ export default async function CompanySettingsPage({
                     id: team.id,
                     name: team.name,
                     timezone: team.timezone,
-                    dayWeekStarts: team.dayWeekStarts,
                     color: team.color,
                   }}
                   jobs={team.jobs}

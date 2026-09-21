@@ -77,22 +77,14 @@ export async function updateCompanyAction(companyId: string, formData: FormData)
       return { error: "Choose a valid weekday for week starts." };
     }
 
-    const current = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { defaultDayWeekStarts: true },
-    });
-    if (!current) return { error: "Company not found." };
-
     await prisma.company.update({
       where: { id: companyId },
       data: { name, defaultTimezone, defaultDayWeekStarts },
     });
-    if (current.defaultDayWeekStarts !== defaultDayWeekStarts) {
-      await prisma.team.updateMany({
-        where: { companyId },
-        data: { dayWeekStarts: defaultDayWeekStarts },
-      });
-    }
+    await prisma.team.updateMany({
+      where: { companyId },
+      data: { dayWeekStarts: defaultDayWeekStarts },
+    });
 
     revalidatePath(`/app/companies/${companyId}`);
     revalidatePath(`/app/companies/${companyId}/settings`);

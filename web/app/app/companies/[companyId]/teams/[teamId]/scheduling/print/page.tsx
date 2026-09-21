@@ -26,13 +26,13 @@ export default async function PrintWeekPage({
     select: {
       name: true,
       timezone: true,
-      dayWeekStarts: true,
+      company: { select: { defaultDayWeekStarts: true } },
     },
   });
   if (!team) notFound();
 
   const anchor = parseDateParam(dateParam);
-  const weekBounds = weekRange(anchor, team.dayWeekStarts);
+  const weekBounds = weekRange(anchor, team.company.defaultDayWeekStarts);
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekBounds.start, index));
 
   const shifts = await prisma.shift.findMany({

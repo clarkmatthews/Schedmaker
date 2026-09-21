@@ -3,17 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJobAction, updateJobAction, updateTeamAction } from "@/lib/actions/teams";
-import { TIMEZONES, WEEKDAYS } from "@/lib/utils";
+import { TIMEZONES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
 import { ColorSwatchPicker } from "@/components/settings/color-swatch-picker";
 
 type Job = { id: string; name: string; color: string; archived: boolean };
 
-const lastSaved = new Map<
-  string,
-  { name: string; timezone: string; weekStarts: string }
->();
+const lastSaved = new Map<string, { name: string; timezone: string }>();
 
 export function TeamSettings({
   companyId,
@@ -25,7 +22,6 @@ export function TeamSettings({
     id: string;
     name: string;
     timezone: string;
-    dayWeekStarts: string;
     color: string;
   };
   jobs: Job[];
@@ -35,7 +31,6 @@ export function TeamSettings({
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(saved?.name ?? team.name);
   const [timezone, setTimezone] = useState(saved?.timezone ?? team.timezone);
-  const [weekStarts, setWeekStarts] = useState(saved?.weekStarts ?? team.dayWeekStarts);
 
   return (
     <div className="space-y-8">
@@ -47,7 +42,6 @@ export function TeamSettings({
           const next = {
             name: String(formData.get("name") ?? name),
             timezone: String(formData.get("timezone") ?? timezone),
-            weekStarts: String(formData.get("dayWeekStarts") ?? weekStarts),
           };
           const result = await updateTeamAction(companyId, team.id, formData);
           if (result.error) {
@@ -58,7 +52,6 @@ export function TeamSettings({
           setError(null);
           setName(next.name);
           setTimezone(next.timezone);
-          setWeekStarts(next.weekStarts);
         }}
       >
         <h2 className="text-lg font-semibold">Team settings</h2>
@@ -82,25 +75,6 @@ export function TeamSettings({
             {TIMEZONES.map((zone) => (
               <option key={zone} value={zone}>
                 {zone}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor={`week-${team.id}`}>Week starts</Label>
-          <p className="mb-1 text-sm text-muted">
-            First day on this team’s calendar and workweek. Changing this
-            redraws the calendar and recalculates weekly overtime.
-          </p>
-          <Select
-            id={`week-${team.id}`}
-            name="dayWeekStarts"
-            value={weekStarts}
-            onChange={(event) => setWeekStarts(event.target.value)}
-          >
-            {WEEKDAYS.map((day) => (
-              <option key={day} value={day}>
-                {day}
               </option>
             ))}
           </Select>

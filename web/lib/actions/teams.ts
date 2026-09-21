@@ -40,13 +40,12 @@ export async function updateTeamAction(
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const timezone = String(formData.get("timezone") ?? "UTC");
-    const dayWeekStarts = String(formData.get("dayWeekStarts") ?? "monday");
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     if (!name) return { error: "Team name is required." };
 
     await prisma.team.update({
       where: { id: teamId },
-      data: { name, timezone, dayWeekStarts, color },
+      data: { name, timezone, color },
     });
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/settings`);
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling`);

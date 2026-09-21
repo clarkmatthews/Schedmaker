@@ -58,7 +58,8 @@ export default async function SchedulingPage({
 
   const view = parseView(viewParam);
   const anchor = parseDateParam(dateParam ?? week);
-  const weekBounds = weekRange(anchor, team.dayWeekStarts);
+  const weekStarts = team.company.defaultDayWeekStarts;
+  const weekBounds = weekRange(anchor, weekStarts);
   const bounds = view === "day" ? dayRange(anchor) : weekBounds;
   const shifts = await prisma.shift.findMany({
     where: {
@@ -173,7 +174,7 @@ export default async function SchedulingPage({
           withWarnings,
           overtimeRules,
           team.timezone,
-          team.dayWeekStarts,
+          weekStarts,
         );
         return withWarnings
           .filter((shift) => {

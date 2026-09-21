@@ -34,7 +34,7 @@ Schedule window and open hours are not the same thing. You might allow a 6:00 AM
 
 ## Teams
 
-Create and rename teams, set each team’s time zone, week start, and color. Teams are the calendars in the menu. A team week start can still be changed on its own; a later company week-start save overwrites all teams again.
+Create and rename teams, set each team’s time zone and color. Teams are the calendars in the menu. Every team calendar uses the company Week starts day.
 
 **Jobs** live on a team. Give a job a name and color. Archived jobs disappear from the shift picker but stay on shifts that already used them.
 

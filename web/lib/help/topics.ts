@@ -85,7 +85,7 @@ export const HELP_TOPICS = {
   },
   settingsTeams: {
     title: "Teams",
-    body: "Teams are the calendars in the menu. Each team has a name, time zone, week start, color, and jobs (positions) that color the shift bars.",
+    body: "Teams are the calendars in the menu. Each team has a name, time zone, color, and jobs (positions) that color the shift bars. The workweek start comes from Company settings.",
   },
   settingsResponsibilities: {
     title: "Responsibilities",
