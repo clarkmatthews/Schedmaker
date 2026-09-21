@@ -57,4 +57,4 @@ Minor rules use the person’s birth date for age, daily and weekly hour caps, a
 
 ## Historical lock
 
-If **Lock historical schedule** is on in Scheduling rules, you cannot create, move, copy, delete, or publish shifts on today or any earlier date (in the team’s time zone). Future dates still edit normally. Turn this on when you want yesterday’s posted schedule to stay put.
+If **Lock historical schedule** is on in Scheduling rules, you cannot create, move, copy, delete, or publish shifts on today or any earlier date (in the company time zone). Future dates still edit normally. Turn this on when you want yesterday’s posted schedule to stay put.

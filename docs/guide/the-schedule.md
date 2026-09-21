@@ -10,7 +10,7 @@ Open a team from the hamburger menu, then choose **Scheduling**. This is the cal
 
 - Previous / Next move by a week in week view, or by a day in day view.
 - Click a day header in week view to jump to that day.
-- The clock next to the date uses the team’s time zone.
+- The clock next to the date uses the company time zone.
 
 ![Day calendar](../screenshots/day-view.png)
 

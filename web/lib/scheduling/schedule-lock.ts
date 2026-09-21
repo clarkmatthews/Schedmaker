@@ -12,11 +12,7 @@ export async function assertScheduleDayEditable(
   );
   if (!company || !locked) return;
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, companyId },
-    select: { timezone: true },
-  });
-  const timezone = team?.timezone || company.defaultTimezone || "UTC";
+  const timezone = company.defaultTimezone || "UTC";
   const today = formatInTimeZone(new Date(), timezone, "yyyy-MM-dd");
 
   for (const date of dates) {

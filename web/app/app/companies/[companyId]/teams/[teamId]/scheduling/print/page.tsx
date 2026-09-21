@@ -25,13 +25,13 @@ export default async function PrintWeekPage({
     where: { id: teamId, companyId },
     select: {
       name: true,
-      timezone: true,
-      company: { select: { defaultDayWeekStarts: true } },
+      company: { select: { defaultDayWeekStarts: true, defaultTimezone: true } },
     },
   });
   if (!team) notFound();
 
   const anchor = parseDateParam(dateParam);
+  const timezone = team.company.defaultTimezone;
   const weekBounds = weekRange(anchor, team.company.defaultDayWeekStarts);
   const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekBounds.start, index));
 
@@ -69,9 +69,9 @@ export default async function PrintWeekPage({
     <PrintWeekFrame>
       <PrintWeek
         teamName={team.name}
-        timezone={team.timezone}
+        timezone={timezone}
         weekStartIso={weekBounds.start.toISOString()}
-        employees={buildPrintEmployees(assigned, weekDays, team.timezone)}
+        employees={buildPrintEmployees(assigned, weekDays, timezone)}
       />
     </PrintWeekFrame>
   );

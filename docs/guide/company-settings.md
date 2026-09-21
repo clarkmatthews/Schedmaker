@@ -6,7 +6,7 @@ Open **Company settings** from the hamburger menu. The page is a stack of sectio
 
 ## Company
 
-The company name, default time zone, and the weekday the workweek starts on. Changing week starts updates every team’s calendar. New teams also inherit this day.
+The company name, time zone, and the weekday the workweek starts on. Time zone and week starts apply to every team calendar. Changing week starts also recalculates weekly overtime.
 
 ## Hours
 
@@ -34,7 +34,7 @@ Schedule window and open hours are not the same thing. You might allow a 6:00 AM
 
 ## Teams
 
-Create and rename teams, set each team’s time zone and color. Teams are the calendars in the menu. Every team calendar uses the company Week starts day.
+Create and rename teams, and set each team’s color. Teams are the calendars in the menu. Time zone and week starts come from Company settings.
 
 **Jobs** live on a team. Give a job a name and color. Archived jobs disappear from the shift picker but stay on shifts that already used them.
 

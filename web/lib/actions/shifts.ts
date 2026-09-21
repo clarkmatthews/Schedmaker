@@ -120,9 +120,9 @@ async function loadHoursContext(companyId: string, teamId: string) {
   const team = await prisma.team.findFirst({
     where: { id: teamId, companyId },
     select: {
-      timezone: true,
       company: {
         select: {
+          defaultTimezone: true,
           hoursTemplate: { include: { days: true } },
         },
       },
@@ -132,7 +132,7 @@ async function loadHoursContext(companyId: string, teamId: string) {
     throw new ActionError("Team not found.");
   }
   return {
-    timezone: team.timezone || "UTC",
+    timezone: team.company.defaultTimezone || "UTC",
     template: team.company.hoursTemplate
       ? toHoursTemplateView(team.company.hoursTemplate)
       : null,

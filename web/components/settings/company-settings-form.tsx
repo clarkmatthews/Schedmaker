@@ -62,7 +62,10 @@ export function CompanySettingsForm({
         />
       </div>
       <div>
-        <Label htmlFor="defaultTimezone">Default timezone</Label>
+        <Label htmlFor="defaultTimezone">Timezone</Label>
+        <p className="mb-1 text-sm text-muted">
+          Used on every team calendar.
+        </p>
         <Select
           id="defaultTimezone"
           name="defaultTimezone"

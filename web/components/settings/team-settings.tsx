@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJobAction, updateJobAction, updateTeamAction } from "@/lib/actions/teams";
-import { TIMEZONES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FieldError, Input, Label, Select } from "@/components/ui/input";
+import { FieldError, Input, Label } from "@/components/ui/input";
 import { ColorSwatchPicker } from "@/components/settings/color-swatch-picker";
 
 type Job = { id: string; name: string; color: string; archived: boolean };
 
-const lastSaved = new Map<string, { name: string; timezone: string }>();
+const lastSaved = new Map<string, { name: string }>();
 
 export function TeamSettings({
   companyId,
@@ -21,7 +20,6 @@ export function TeamSettings({
   team: {
     id: string;
     name: string;
-    timezone: string;
     color: string;
   };
   jobs: Job[];
@@ -30,7 +28,6 @@ export function TeamSettings({
   const saved = lastSaved.get(team.id);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(saved?.name ?? team.name);
-  const [timezone, setTimezone] = useState(saved?.timezone ?? team.timezone);
 
   return (
     <div className="space-y-8">
@@ -41,7 +38,6 @@ export function TeamSettings({
           const formData = new FormData(event.currentTarget);
           const next = {
             name: String(formData.get("name") ?? name),
-            timezone: String(formData.get("timezone") ?? timezone),
           };
           const result = await updateTeamAction(companyId, team.id, formData);
           if (result.error) {
@@ -51,7 +47,6 @@ export function TeamSettings({
           lastSaved.set(team.id, next);
           setError(null);
           setName(next.name);
-          setTimezone(next.timezone);
         }}
       >
         <h2 className="text-lg font-semibold">Team settings</h2>
@@ -63,21 +58,6 @@ export function TeamSettings({
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-        </div>
-        <div>
-          <Label htmlFor={`timezone-${team.id}`}>Timezone</Label>
-          <Select
-            id={`timezone-${team.id}`}
-            name="timezone"
-            value={timezone}
-            onChange={(event) => setTimezone(event.target.value)}
-          >
-            {TIMEZONES.map((zone) => (
-              <option key={zone} value={zone}>
-                {zone}
-              </option>
-            ))}
-          </Select>
         </div>
         <div>
           <Label>Color</Label>

@@ -69,7 +69,7 @@ export const HELP_TOPICS = {
   },
   settingsCompany: {
     title: "Company",
-    body: "The workplace name, default time zone, and the weekday the workweek starts on. Changing week starts updates every team calendar and recalculates weekly overtime.",
+    body: "The workplace name, time zone, and the weekday the workweek starts on. Time zone and week starts apply to every team calendar. Changing week starts also recalculates weekly overtime.",
   },
   settingsHours: {
     title: "Hours",
@@ -85,7 +85,7 @@ export const HELP_TOPICS = {
   },
   settingsTeams: {
     title: "Teams",
-    body: "Teams are the calendars in the menu. Each team has a name, time zone, color, and jobs (positions) that color the shift bars. The workweek start comes from Company settings.",
+    body: "Teams are the calendars in the menu. Each team has a name, color, and jobs (positions) that color the shift bars. Time zone and week start come from Company settings.",
   },
   settingsResponsibilities: {
     title: "Responsibilities",
@@ -113,7 +113,7 @@ export const HELP_TOPICS = {
   },
   historicalLock: {
     title: "Lock past dates",
-    body: "When this is on, nobody can create, move, copy, delete, or publish shifts on today or any earlier date in the team’s time zone. Future dates still edit normally.",
+    body: "When this is on, nobody can create, move, copy, delete, or publish shifts on today or any earlier date in the company time zone. Future dates still edit normally.",
   },
 } as const;
 

@@ -59,6 +59,7 @@ export default async function SchedulingPage({
   const view = parseView(viewParam);
   const anchor = parseDateParam(dateParam ?? week);
   const weekStarts = team.company.defaultDayWeekStarts;
+  const timezone = team.company.defaultTimezone;
   const weekBounds = weekRange(anchor, weekStarts);
   const bounds = view === "day" ? dayRange(anchor) : weekBounds;
   const shifts = await prisma.shift.findMany({
@@ -87,7 +88,7 @@ export default async function SchedulingPage({
       weekStartIso={weekBounds.start.toISOString()}
       rangeStartIso={bounds.start.toISOString()}
       rangeEndIso={bounds.end.toISOString()}
-      timezone={team.timezone}
+      timezone={timezone}
       hoursTemplate={hoursTemplate}
       workers={team.workers
         .filter((worker) => !worker.user.directoryEntries.some((entry) => entry.deactivated))
@@ -153,7 +154,7 @@ export default async function SchedulingPage({
           const birthDate = assignedDeactivated ? null : (shift.user?.birthDate ?? null);
           const mealWarnings = evaluateMealWarnings(item, mealRules, {
             waivedFirst,
-            timezone: team.timezone,
+            timezone,
           });
           return { item, mealWarnings, birthDate };
         });
@@ -164,7 +165,7 @@ export default async function SchedulingPage({
             ...mealWarnings,
             ...evaluateMinorWarnings(item, weekShifts, minorRules, {
               birthDate,
-              timezone: team.timezone,
+              timezone,
               weekStart: weekBounds.start,
               weekEnd: weekBounds.end,
             }),
@@ -173,7 +174,7 @@ export default async function SchedulingPage({
         const splits = allocateOvertime(
           withWarnings,
           overtimeRules,
-          team.timezone,
+          timezone,
           weekStarts,
         );
         return withWarnings

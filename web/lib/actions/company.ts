@@ -83,7 +83,7 @@ export async function updateCompanyAction(companyId: string, formData: FormData)
     });
     await prisma.team.updateMany({
       where: { companyId },
-      data: { dayWeekStarts: defaultDayWeekStarts },
+      data: { timezone: defaultTimezone, dayWeekStarts: defaultDayWeekStarts },
     });
 
     revalidatePath(`/app/companies/${companyId}`);

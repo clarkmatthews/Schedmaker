@@ -11,15 +11,17 @@ export async function createTeamAction(companyId: string, formData: FormData) {
     if (!company) return { error: "Company not found." };
 
     const name = String(formData.get("name") ?? "").trim();
-    const timezone = String(formData.get("timezone") ?? company.defaultTimezone);
-    const dayWeekStarts = String(
-      formData.get("dayWeekStarts") ?? company.defaultDayWeekStarts,
-    );
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     if (!name) return { error: "Team name is required." };
 
     const team = await prisma.team.create({
-      data: { companyId, name, timezone, dayWeekStarts, color },
+      data: {
+        companyId,
+        name,
+        timezone: company.defaultTimezone,
+        dayWeekStarts: company.defaultDayWeekStarts,
+        color,
+      },
     });
     revalidatePath(`/app/companies/${companyId}`);
     revalidatePath(`/app/companies/${companyId}/settings`);
@@ -39,13 +41,12 @@ export async function updateTeamAction(
     await requirePermission(companyId, "teams", "edit");
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
-    const timezone = String(formData.get("timezone") ?? "UTC");
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     if (!name) return { error: "Team name is required." };
 
     await prisma.team.update({
       where: { id: teamId },
-      data: { name, timezone, color },
+      data: { name, color },
     });
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/settings`);
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling`);

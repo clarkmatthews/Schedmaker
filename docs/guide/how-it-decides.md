@@ -34,7 +34,7 @@ Email goes out for **published, future, assigned** shifts when they are created,
 
 ## Historical lock
 
-When the lock is on, any action that would change today or an earlier calendar date (in the team’s time zone) is refused — create, edit, drag, copy, delete, or publish. Tomorrow is still editable.
+When the lock is on, any action that would change today or an earlier calendar date (in the company time zone) is refused — create, edit, drag, copy, delete, or publish. Tomorrow is still editable.
 
 ## Overtime math
 

@@ -86,7 +86,7 @@ export async function loadWeeklySchedule(params: {
     }),
     prisma.team.findFirst({
       where: { id: params.teamId, companyId: params.companyId },
-      select: { timezone: true },
+      select: { id: true },
     }),
     prisma.user.findUnique({
       where: { id: params.userId },
@@ -105,7 +105,7 @@ export async function loadWeeklySchedule(params: {
   ]);
   if (!company || !team || !user) return null;
 
-  const timezone = team.timezone || company.defaultTimezone || "UTC";
+  const timezone = company.defaultTimezone || "UTC";
   const endInclusive = addDays(params.weekStart, 6);
   const employeeName = user.name || "there";
   return {

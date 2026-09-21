@@ -124,7 +124,6 @@ export default async function CompanySettingsPage({
                   team={{
                     id: team.id,
                     name: team.name,
-                    timezone: team.timezone,
                     color: team.color,
                   }}
                   jobs={team.jobs}
