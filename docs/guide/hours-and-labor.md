@@ -21,7 +21,7 @@ The **Hours/OT** column on week view totals each row for the week. Day totals ap
 
 Overtime is calculated when you look at the page. It is not stored as a separate number. Daily overtime is typically time after 8 hours in a day. Weekly overtime is typically time after 40 hours in the workweek. A seventh consecutive day can count as overtime when that rule is on. These defaults follow California; you can change them under Scheduling rules.
 
-Weekly overtime still uses the full workweek, even if you are looking at a single day.
+Weekly overtime still uses the full workweek, even if you are looking at a single day. The workweek follows **Week starts** in Company settings. Changing that day redraws the calendar and recalculates weekly overtime.
 
 People without an assigned shift user (unassigned bars) can show daily overtime only. They are not rolled into a weekly total.
 

@@ -1,5 +1,6 @@
 import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
+import { workweekStartKey } from "@/lib/scheduling/range";
 import { onClockMs } from "@/lib/scheduling/totals";
 
 export const US_STATES = [
@@ -248,6 +249,64 @@ function splitShift(onClock: number, otMs: number): OvertimeSplit {
   return { regularMs: Math.max(0, onClock - ot), otMs: ot };
 }
 
+function applyWeekOvertime(
+  byDay: Map<
+    string,
+    Array<{
+      id: string;
+      start: string;
+      stop: string;
+      userId?: string | null;
+      breaks: { start: string; stop: string }[];
+    }>
+  >,
+  rules: OvertimeRules,
+  result: Map<string, OvertimeSplit>,
+) {
+  const dailyAfterMs = rules.dailyAfterHours * 3_600_000;
+  const weeklyAfterMs = rules.weeklyAfterHours * 3_600_000;
+  const days = [...byDay.keys()].sort();
+  const dayHours = new Map<string, number>();
+  for (const day of days) {
+    const hours = (byDay.get(day) ?? []).reduce((sum, shift) => sum + onClockMs(shift), 0);
+    dayHours.set(day, hours);
+  }
+  const worked = days.filter((day) => (dayHours.get(day) ?? 0) > 0);
+  const seventhDay = rules.seventhDayEnabled && worked.length >= 7 ? worked[6] : null;
+  const dailyOt = new Map<string, number>();
+  let weekHours = 0;
+  let dailyOtTotal = 0;
+  for (const day of days) {
+    const hours = dayHours.get(day) ?? 0;
+    weekHours += hours;
+    const ot = day === seventhDay ? hours : Math.max(0, hours - dailyAfterMs);
+    dailyOt.set(day, ot);
+    dailyOtTotal += ot;
+  }
+  let extraWeekly = Math.max(0, Math.max(0, weekHours - weeklyAfterMs) - dailyOtTotal);
+  const remainingRegular = new Map<string, number>();
+  for (const day of days) {
+    remainingRegular.set(day, (dayHours.get(day) ?? 0) - (dailyOt.get(day) ?? 0));
+  }
+  for (const day of [...days].reverse()) {
+    if (extraWeekly <= 0) break;
+    const available = remainingRegular.get(day) ?? 0;
+    const take = Math.min(available, extraWeekly);
+    dailyOt.set(day, (dailyOt.get(day) ?? 0) + take);
+    remainingRegular.set(day, available - take);
+    extraWeekly -= take;
+  }
+  for (const day of days) {
+    const hours = dayHours.get(day) ?? 0;
+    const ot = dailyOt.get(day) ?? 0;
+    for (const shift of byDay.get(day) ?? []) {
+      const shiftHours = onClockMs(shift);
+      const share = hours > 0 ? shiftHours / hours : 0;
+      result.set(shift.id, splitShift(shiftHours, ot * share));
+    }
+  }
+}
+
 export function allocateOvertime(
   shifts: Array<{
     id: string;
@@ -258,6 +317,7 @@ export function allocateOvertime(
   }>,
   rules: OvertimeRules | null,
   timezone: string,
+  dayWeekStarts = "monday",
 ): Map<string, OvertimeSplit> {
   const result = new Map<string, OvertimeSplit>();
   if (!rules?.enabled) {
@@ -268,7 +328,6 @@ export function allocateOvertime(
   }
 
   const dailyAfterMs = rules.dailyAfterHours * 3_600_000;
-  const weeklyAfterMs = rules.weeklyAfterHours * 3_600_000;
   const byUser = new Map<string, typeof shifts>();
   for (const shift of shifts) {
     if (!shift.userId) {
@@ -282,52 +341,18 @@ export function allocateOvertime(
   }
 
   for (const userShifts of byUser.values()) {
-    const byDay = new Map<string, typeof userShifts>();
+    const byWeek = new Map<string, Map<string, typeof userShifts>>();
     for (const shift of userShifts) {
-      const key = dayKey(shift.start, timezone);
-      const list = byDay.get(key) ?? [];
+      const day = dayKey(shift.start, timezone);
+      const week = workweekStartKey(day, dayWeekStarts);
+      const byDay = byWeek.get(week) ?? new Map();
+      const list = byDay.get(day) ?? [];
       list.push(shift);
-      byDay.set(key, list);
+      byDay.set(day, list);
+      byWeek.set(week, byDay);
     }
-    const days = [...byDay.keys()].sort();
-    const dayHours = new Map<string, number>();
-    for (const day of days) {
-      const hours = (byDay.get(day) ?? []).reduce((sum, shift) => sum + onClockMs(shift), 0);
-      dayHours.set(day, hours);
-    }
-    const worked = days.filter((day) => (dayHours.get(day) ?? 0) > 0);
-    const seventhDay = rules.seventhDayEnabled && worked.length >= 7 ? worked[6] : null;
-    const dailyOt = new Map<string, number>();
-    let weekHours = 0;
-    let dailyOtTotal = 0;
-    for (const day of days) {
-      const hours = dayHours.get(day) ?? 0;
-      weekHours += hours;
-      const ot = day === seventhDay ? hours : Math.max(0, hours - dailyAfterMs);
-      dailyOt.set(day, ot);
-      dailyOtTotal += ot;
-    }
-    let extraWeekly = Math.max(0, Math.max(0, weekHours - weeklyAfterMs) - dailyOtTotal);
-    const remainingRegular = new Map<string, number>();
-    for (const day of days) {
-      remainingRegular.set(day, (dayHours.get(day) ?? 0) - (dailyOt.get(day) ?? 0));
-    }
-    for (const day of [...days].reverse()) {
-      if (extraWeekly <= 0) break;
-      const available = remainingRegular.get(day) ?? 0;
-      const take = Math.min(available, extraWeekly);
-      dailyOt.set(day, (dailyOt.get(day) ?? 0) + take);
-      remainingRegular.set(day, available - take);
-      extraWeekly -= take;
-    }
-    for (const day of days) {
-      const hours = dayHours.get(day) ?? 0;
-      const ot = dailyOt.get(day) ?? 0;
-      for (const shift of byDay.get(day) ?? []) {
-        const shiftHours = onClockMs(shift);
-        const share = hours > 0 ? shiftHours / hours : 0;
-        result.set(shift.id, splitShift(shiftHours, ot * share));
-      }
+    for (const byDay of byWeek.values()) {
+      applyWeekOvertime(byDay, rules, result);
     }
   }
 

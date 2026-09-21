@@ -43,7 +43,7 @@ Overtime is computed when the page loads.
 - Group a person’s shifts by calendar day in the team time zone.
 - Daily overtime is hours past the daily threshold (8 by default).
 - If seventh-day overtime is on, a seventh consecutive workday can count as overtime.
-- Weekly overtime is remaining hours past the weekly threshold (40 by default), applied after daily overtime, working backward through the week.
+- Weekly overtime is remaining hours past the weekly threshold (40 by default), applied after daily overtime, working backward through the workweek that starts on the company’s Week starts day.
 - On a day with several shifts, overtime is split across those bars in proportion to their length.
 
 Unassigned shifts only use the daily rule.

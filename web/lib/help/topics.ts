@@ -25,7 +25,7 @@ export const HELP_TOPICS = {
   },
   hoursOt: {
     title: "Hours and overtime",
-    body: "Hours are time on the clock after unpaid breaks. OT is overtime using this company’s rules — usually after 8 hours in a day or 40 in the week. Weekly overtime still uses the full workweek, even in day view.",
+    body: "Hours are time on the clock after unpaid breaks. OT is overtime using this company’s rules — usually after 8 hours in a day or 40 in the week. Weekly overtime uses the workweek from Week starts in Company settings, even in day view.",
   },
   unassigned: {
     title: "Unassigned",
@@ -69,7 +69,7 @@ export const HELP_TOPICS = {
   },
   settingsCompany: {
     title: "Company",
-    body: "The workplace name, default time zone, and the weekday the workweek starts on. New teams inherit these. Each team can later use its own time zone and week start.",
+    body: "The workplace name, default time zone, and the weekday the workweek starts on. Changing week starts updates every team calendar and recalculates weekly overtime.",
   },
   settingsHours: {
     title: "Hours",

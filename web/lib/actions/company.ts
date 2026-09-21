@@ -9,6 +9,7 @@ import {
   requireSession,
 } from "@/lib/permissions";
 import { createDefaultRoles } from "@/lib/roles";
+import { WEEKDAYS, type Weekday } from "@/lib/utils";
 
 export async function createCompanyAction(formData: FormData) {
   const user = await requireSession();
@@ -72,13 +73,37 @@ export async function updateCompanyAction(companyId: string, formData: FormData)
       formData.get("defaultDayWeekStarts") ?? "monday",
     );
     if (!name) return { error: "Company name is required." };
+    if (!WEEKDAYS.includes(defaultDayWeekStarts as Weekday)) {
+      return { error: "Choose a valid weekday for week starts." };
+    }
+
+    const current = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { defaultDayWeekStarts: true },
+    });
+    if (!current) return { error: "Company not found." };
 
     await prisma.company.update({
       where: { id: companyId },
       data: { name, defaultTimezone, defaultDayWeekStarts },
     });
+    if (current.defaultDayWeekStarts !== defaultDayWeekStarts) {
+      await prisma.team.updateMany({
+        where: { companyId },
+        data: { dayWeekStarts: defaultDayWeekStarts },
+      });
+    }
+
     revalidatePath(`/app/companies/${companyId}`);
     revalidatePath(`/app/companies/${companyId}/settings`);
+    const teams = await prisma.team.findMany({
+      where: { companyId },
+      select: { id: true },
+    });
+    for (const team of teams) {
+      revalidatePath(`/app/companies/${companyId}/teams/${team.id}/scheduling`);
+      revalidatePath(`/app/companies/${companyId}/teams/${team.id}/scheduling/print`);
+    }
     return { ok: true as const };
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };

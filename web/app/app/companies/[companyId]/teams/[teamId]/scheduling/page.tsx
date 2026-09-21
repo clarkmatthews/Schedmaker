@@ -169,7 +169,12 @@ export default async function SchedulingPage({
             }),
           ],
         }));
-        const splits = allocateOvertime(withWarnings, overtimeRules, team.timezone);
+        const splits = allocateOvertime(
+          withWarnings,
+          overtimeRules,
+          team.timezone,
+          team.dayWeekStarts,
+        );
         return withWarnings
           .filter((shift) => {
             const start = new Date(shift.start).getTime();

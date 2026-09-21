@@ -49,6 +49,8 @@ export async function updateTeamAction(
       data: { name, timezone, dayWeekStarts, color },
     });
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/settings`);
+    revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling`);
+    revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling/print`);
     revalidatePath(`/app/companies/${companyId}/settings`);
     return { ok: true as const };
   } catch (error) {
