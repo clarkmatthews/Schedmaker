@@ -24,6 +24,18 @@ import { FieldError, Input, Label, Select } from "@/components/ui/input";
 const START_OPTIONS = slotOptions();
 const END_OPTIONS = endSlotOptions();
 
+type HoursDraft = { name: string; days: HoursDay[] };
+type SavedHours = {
+  assignedId: string;
+  drafts: Record<string, HoursDraft>;
+};
+
+const lastSaved = new Map<string, SavedHours>();
+
+function savedHours(companyId: string): SavedHours {
+  return lastSaved.get(companyId) ?? { assignedId: "", drafts: {} };
+}
+
 function titleCase(value: string) {
   return value.slice(0, 1).toUpperCase() + value.slice(1);
 }
@@ -67,20 +79,25 @@ export function HoursSettings({
   templates: HoursTemplateView[];
 }) {
   const router = useRouter();
+  const saved = lastSaved.get(companyId);
   const [error, setError] = useState<string | null>(null);
-  const [assignedId, setAssignedId] = useState(assignedTemplateId ?? "");
+  const [assignedId, setAssignedId] = useState(saved?.assignedId ?? assignedTemplateId ?? "");
   const [editingId, setEditingId] = useState(assignedTemplateId ?? templates[0]?.id ?? "");
   const [newName, setNewName] = useState("");
   const editing = useMemo(
     () => templates.find((item) => item.id === editingId) ?? null,
     [editingId, templates],
   );
-  const [name, setName] = useState(editing?.name ?? "");
-  const [days, setDays] = useState<HoursDay[]>(editing?.days ?? defaultHoursDays());
+  const initialDraft = saved?.drafts[editing?.id ?? ""] ?? editing;
+  const [name, setName] = useState(initialDraft?.name ?? "");
+  const [days, setDays] = useState<HoursDay[]>(
+    initialDraft?.days ? structuredClone(initialDraft.days) : defaultHoursDays(),
+  );
 
   useEffect(() => {
-    setAssignedId(assignedTemplateId ?? "");
-  }, [assignedTemplateId]);
+    const remembered = lastSaved.get(companyId);
+    setAssignedId(remembered?.assignedId ?? assignedTemplateId ?? "");
+  }, [assignedTemplateId, companyId]);
 
   useEffect(() => {
     if (templates.length === 0) {
@@ -94,9 +111,10 @@ export function HoursSettings({
 
   useEffect(() => {
     if (!editing) return;
-    setName(editing.name);
-    setDays(structuredClone(editing.days));
-  }, [editing]);
+    const draft = lastSaved.get(companyId)?.drafts[editing.id];
+    setName(draft?.name ?? editing.name);
+    setDays(structuredClone(draft?.days ?? editing.days));
+  }, [editing, companyId]);
 
   function loadTemplate(template: HoursTemplateView | null) {
     setEditingId(template?.id ?? "");
@@ -120,13 +138,17 @@ export function HoursSettings({
 
       <form
         className="flex flex-wrap items-end gap-3"
-        action={async (formData) => {
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
           const result = await assignHoursTemplateAction(companyId, formData);
-          if (result.error) setError(result.error);
-          else {
-            setError(null);
-            router.refresh();
+          if (result.error) {
+            setError(result.error);
+            return;
           }
+          const current = savedHours(companyId);
+          lastSaved.set(companyId, { ...current, assignedId });
+          setError(null);
         }}
       >
         <div className="min-w-64 flex-1">
@@ -172,7 +194,11 @@ export function HoursSettings({
             setNewName("");
             if (result.templateId) {
               setEditingId(result.templateId);
-              if (!assignedId) setAssignedId(result.templateId);
+              if (!assignedId) {
+                setAssignedId(result.templateId);
+                const current = savedHours(companyId);
+                lastSaved.set(companyId, { ...current, assignedId: result.templateId });
+              }
             }
             router.refresh();
           }
@@ -194,15 +220,25 @@ export function HoursSettings({
       {editing ? (
         <form
           className="space-y-4"
-          action={async (formData) => {
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const formData = new FormData();
             formData.set("name", name);
             formData.set("days", JSON.stringify(days));
             const result = await updateHoursTemplateAction(companyId, editing.id, formData);
-            if (result.error) setError(result.error);
-            else {
-              setError(null);
-              router.refresh();
+            if (result.error) {
+              setError(result.error);
+              return;
             }
+            const current = savedHours(companyId);
+            lastSaved.set(companyId, {
+              assignedId: current.assignedId || assignedId,
+              drafts: {
+                ...current.drafts,
+                [editing.id]: { name, days: structuredClone(days) },
+              },
+            });
+            setError(null);
           }}
         >
           <div className="max-w-md">

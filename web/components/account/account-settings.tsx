@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label } from "@/components/ui/input";
 
+const lastSaved = new Map<
+  string,
+  { name: string; phoneNumber: string; photoUrl: string }
+>();
+
 export function AccountSettings({
   user,
   icalUrl,
@@ -18,30 +23,37 @@ export function AccountSettings({
   };
   icalUrl: string;
 }) {
+  const saved = lastSaved.get(user.email);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [accountOk, setAccountOk] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordOk, setPasswordOk] = useState(false);
+  const [name, setName] = useState(saved?.name ?? user.name);
+  const [phoneNumber, setPhoneNumber] = useState(saved?.phoneNumber ?? user.phoneNumber ?? "");
+  const [photoUrl, setPhotoUrl] = useState(saved?.photoUrl ?? user.photoUrl);
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
       <form
         className="space-y-3 rounded-lg border border-border bg-white p-5"
-        action={async (formData) => {
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
           const result = await updateAccountAction(formData);
           if (result.error) {
             setAccountError(result.error);
             setAccountOk(false);
-          } else {
-            setAccountError(null);
-            setAccountOk(true);
+            return;
           }
+          lastSaved.set(user.email, { name, phoneNumber, photoUrl });
+          setAccountError(null);
+          setAccountOk(true);
         }}
       >
         <h1 className="text-lg font-semibold">Account</h1>
         <div>
           <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" defaultValue={user.name} />
+          <Input id="name" name="name" value={name} onChange={(event) => setName(event.target.value)} />
         </div>
         <div>
           <Label>Email</Label>
@@ -49,11 +61,21 @@ export function AccountSettings({
         </div>
         <div>
           <Label htmlFor="phoneNumber">Phone</Label>
-          <Input id="phoneNumber" name="phoneNumber" defaultValue={user.phoneNumber ?? ""} />
+          <Input
+            id="phoneNumber"
+            name="phoneNumber"
+            value={phoneNumber}
+            onChange={(event) => setPhoneNumber(event.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="photoUrl">Photo URL</Label>
-          <Input id="photoUrl" name="photoUrl" defaultValue={user.photoUrl} />
+          <Input
+            id="photoUrl"
+            name="photoUrl"
+            value={photoUrl}
+            onChange={(event) => setPhotoUrl(event.target.value)}
+          />
         </div>
         <FieldError message={accountError} />
         {accountOk ? <p className="text-sm text-teal-dark">Saved.</p> : null}

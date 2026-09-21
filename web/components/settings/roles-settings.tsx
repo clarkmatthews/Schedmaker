@@ -8,6 +8,8 @@ import {
   PERMISSION_SECTIONS,
   parsePermissions,
   type AccessLevel,
+  type PermissionSectionId,
+  type RolePermissions,
 } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/ui/help-tip";
@@ -25,6 +27,8 @@ const LEVELS: { id: AccessLevel; label: string }[] = [
   { id: "view", label: "View" },
   { id: "edit", label: "Edit" },
 ];
+
+const lastSaved = new Map<string, { name: string; permissions: RolePermissions }>();
 
 export function RolesSettings({
   companyId,
@@ -108,56 +112,19 @@ export function RolesSettings({
           </div>
         </form>
       ) : selected ? (
-        <form
+        <RoleEditor
           key={selected.id}
-          className="space-y-4"
-          action={async (formData) => {
-            const result = await updateRoleAction(companyId, selected.id, formData);
-            if (result.error) setError(result.error);
-            else {
-              setError(null);
-              router.refresh();
-            }
+          companyId={companyId}
+          role={selected}
+          canEdit={canEdit}
+          locked={locked}
+          error={error}
+          onError={setError}
+          onDeleted={() => {
+            setSelectedId(roles.find((role) => role.id !== selected.id)?.id ?? "");
+            router.refresh();
           }}
-        >
-          <div>
-            <Label htmlFor="roleName">Name</Label>
-            <Input id="roleName" name="name" defaultValue={selected.name} required />
-          </div>
-          {locked ? (
-            <p className="flex items-start gap-1 text-sm text-muted">
-              <span>Administrator permissions are locked to Edit on every section.</span>
-              <HelpTip topic="administratorLock" />
-            </p>
-          ) : null}
-          <PermissionGrid
-            values={parsePermissions(selected.permissions, selected.systemKey)}
-            locked={locked}
-          />
-          <FieldError message={error} />
-          {canEdit ? (
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit">Save</Button>
-              {locked ? null : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    const result = await deleteRoleAction(companyId, selected.id);
-                    if (result.error) setError(result.error);
-                    else {
-                      setError(null);
-                      setSelectedId(roles.find((role) => role.id !== selected.id)?.id ?? "");
-                      router.refresh();
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
-              )}
-            </div>
-          ) : null}
-        </form>
+        />
       ) : (
         <p className="text-sm text-muted">No roles yet.</p>
       )}
@@ -165,12 +132,106 @@ export function RolesSettings({
   );
 }
 
+function RoleEditor({
+  companyId,
+  role,
+  canEdit,
+  locked,
+  error,
+  onError,
+  onDeleted,
+}: {
+  companyId: string;
+  role: RoleRow;
+  canEdit: boolean;
+  locked: boolean;
+  error: string | null;
+  onError: (message: string | null) => void;
+  onDeleted: () => void;
+}) {
+  const saved = lastSaved.get(role.id);
+  const [name, setName] = useState(saved?.name ?? role.name);
+  const [permissions, setPermissions] = useState(
+    saved?.permissions ?? parsePermissions(role.permissions, role.systemKey),
+  );
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        const formData = new FormData();
+        formData.set("name", name);
+        for (const section of PERMISSION_SECTIONS) {
+          formData.set(`perm_${section.id}`, permissions[section.id]);
+        }
+        const result = await updateRoleAction(companyId, role.id, formData);
+        if (result.error) {
+          onError(result.error);
+          return;
+        }
+        lastSaved.set(role.id, { name, permissions: { ...permissions } });
+        onError(null);
+      }}
+    >
+      <div>
+        <Label htmlFor="roleName">Name</Label>
+        <Input
+          id="roleName"
+          name="name"
+          value={name}
+          required
+          onChange={(event) => setName(event.target.value)}
+        />
+      </div>
+      {locked ? (
+        <p className="flex items-start gap-1 text-sm text-muted">
+          <span>Administrator permissions are locked to Edit on every section.</span>
+          <HelpTip topic="administratorLock" />
+        </p>
+      ) : null}
+      <PermissionGrid
+        values={permissions}
+        locked={locked}
+        onChange={(section, level) =>
+          setPermissions((current) => ({ ...current, [section]: level }))
+        }
+      />
+      <FieldError message={error} />
+      {canEdit ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit">Save</Button>
+          {locked ? null : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                const result = await deleteRoleAction(companyId, role.id);
+                if (result.error) onError(result.error);
+                else {
+                  lastSaved.delete(role.id);
+                  onError(null);
+                  onDeleted();
+                }
+              }}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
 function PermissionGrid({
   values,
   locked,
+  onChange,
 }: {
   values?: ReturnType<typeof parsePermissions>;
   locked?: boolean;
+  onChange?: (section: PermissionSectionId, level: AccessLevel) => void;
 }) {
   return (
     <div className="overflow-auto rounded-md border border-border">
@@ -202,8 +263,13 @@ function PermissionGrid({
                       type="radio"
                       name={`perm_${section.id}`}
                       value={level.id}
-                      defaultChecked={current === level.id}
                       disabled={locked}
+                      {...(onChange
+                        ? {
+                            checked: current === level.id,
+                            onChange: () => onChange(section.id, level.id),
+                          }
+                        : { defaultChecked: current === level.id })}
                     />
                   </td>
                 ))}

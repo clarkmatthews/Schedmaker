@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateSchedulingRulesAction } from "@/lib/actions/company";
 import {
   mealRulesForState,
@@ -30,6 +29,16 @@ function hoursToMinutes(hours: number) {
   return Math.round(hours * 60);
 }
 
+type SavedScheduling = {
+  locked: boolean;
+  state: string;
+  rules: MealRules;
+  otRules: OvertimeRules;
+  minor: MinorRules;
+};
+
+const lastSaved = new Map<string, SavedScheduling>();
+
 export function SchedulingSettings({
   companyId,
   companyName,
@@ -47,18 +56,18 @@ export function SchedulingSettings({
   overtimeRules: unknown;
   minorRules: unknown;
 }) {
-  const router = useRouter();
+  const saved = lastSaved.get(companyId);
   const [error, setError] = useState<string | null>(null);
-  const [locked, setLocked] = useState(lockHistoricalSchedule);
-  const [state, setState] = useState(laborState);
+  const [locked, setLocked] = useState(saved?.locked ?? lockHistoricalSchedule);
+  const [state, setState] = useState(saved?.state ?? laborState);
   const [rules, setRules] = useState<MealRules>(
-    parseMealRules(mealRules) ?? mealRulesForState(laborState),
+    saved?.rules ?? parseMealRules(mealRules) ?? mealRulesForState(laborState),
   );
   const [otRules, setOtRules] = useState<OvertimeRules>(
-    parseOvertimeRules(overtimeRules) ?? overtimeRulesForState(laborState),
+    saved?.otRules ?? parseOvertimeRules(overtimeRules) ?? overtimeRulesForState(laborState),
   );
   const [minor, setMinor] = useState<MinorRules>(
-    parseMinorRules(minorRules) ?? minorRulesForState(laborState),
+    saved?.minor ?? parseMinorRules(minorRules) ?? minorRulesForState(laborState),
   );
 
   function updateRule<K extends keyof MealRules>(key: K, value: MealRules[K]) {
@@ -83,18 +92,27 @@ export function SchedulingSettings({
   return (
     <form
       className="max-w-xl space-y-4"
-      action={async (formData) => {
+      onSubmit={async (event) => {
+        event.preventDefault();
+        const formData = new FormData();
         formData.set("lockHistoricalSchedule", locked ? "true" : "false");
         formData.set("laborState", state);
         formData.set("mealRules", JSON.stringify(rules));
         formData.set("overtimeRules", JSON.stringify(otRules));
         formData.set("minorRules", JSON.stringify(minor));
         const result = await updateSchedulingRulesAction(companyId, formData);
-        if (result.error) setError(result.error);
-        else {
-          setError(null);
-          router.refresh();
+        if (result.error) {
+          setError(result.error);
+          return;
         }
+        lastSaved.set(companyId, {
+          locked,
+          state,
+          rules: structuredClone(rules),
+          otRules: structuredClone(otRules),
+          minor: structuredClone(minor),
+        });
+        setError(null);
       }}
     >
       <p className="text-sm text-muted">

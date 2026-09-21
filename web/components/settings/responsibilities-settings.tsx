@@ -17,6 +17,9 @@ type Duty = {
   archived: boolean;
 };
 
+const lastEnabled = new Map<string, boolean>();
+const lastDuties = new Map<string, { name: string; description: string }>();
+
 export function ResponsibilitiesSettings({
   companyId,
   enabled,
@@ -28,15 +31,16 @@ export function ResponsibilitiesSettings({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [on, setOn] = useState(enabled);
+  const [on, setOn] = useState(lastEnabled.get(companyId) ?? enabled);
 
   async function save(id: string, formData: FormData) {
     const result = await updateResponsibilityAction(companyId, id, formData);
-    if (result.error) setError(result.error);
-    else {
-      setError(null);
-      router.refresh();
+    if (result.error) {
+      setError(result.error);
+      return false;
     }
+    setError(null);
+    return true;
   }
 
   return (
@@ -55,8 +59,8 @@ export function ResponsibilitiesSettings({
                 setOn(!next);
                 setError(result.error);
               } else {
+                lastEnabled.set(companyId, next);
                 setError(null);
-                router.refresh();
               }
             }}
           />
@@ -75,43 +79,7 @@ export function ResponsibilitiesSettings({
         <>
       <div className="space-y-3">
         {responsibilities.map((duty) => (
-          <div
-            key={duty.id}
-            className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-[1fr_1fr_auto_auto]"
-          >
-            <form
-              className="contents"
-              action={async (formData) => {
-                formData.set("archived", duty.archived ? "true" : "false");
-                await save(duty.id, formData);
-              }}
-            >
-              <div>
-                <Label>Name</Label>
-                <Input name="name" defaultValue={duty.name} />
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Input name="description" defaultValue={duty.description} />
-              </div>
-              <Button type="submit" variant="outline">
-                Save
-              </Button>
-            </form>
-            <form
-              action={async () => {
-                const formData = new FormData();
-                formData.set("name", duty.name);
-                formData.set("description", duty.description);
-                formData.set("archived", duty.archived ? "false" : "true");
-                await save(duty.id, formData);
-              }}
-            >
-              <Button type="submit" variant="ghost">
-                {duty.archived ? "Restore" : "Archive"}
-              </Button>
-            </form>
-          </div>
+          <DutyEditor key={duty.id} duty={duty} onSave={save} />
         ))}
         {responsibilities.length === 0 ? (
           <p className="text-sm text-muted">No responsibilities yet.</p>
@@ -147,6 +115,63 @@ export function ResponsibilitiesSettings({
           Turn this on to manage duties and assign them on shifts.
         </p>
       )}
+    </div>
+  );
+}
+
+function DutyEditor({
+  duty,
+  onSave,
+}: {
+  duty: Duty;
+  onSave: (id: string, formData: FormData) => Promise<boolean>;
+}) {
+  const saved = lastDuties.get(duty.id);
+  const [name, setName] = useState(saved?.name ?? duty.name);
+  const [description, setDescription] = useState(saved?.description ?? duty.description);
+
+  return (
+    <div className="grid gap-2 rounded-md border border-border p-3 md:grid-cols-[1fr_1fr_auto_auto]">
+      <form
+        className="contents"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          formData.set("archived", duty.archived ? "true" : "false");
+          const ok = await onSave(duty.id, formData);
+          if (ok) lastDuties.set(duty.id, { name, description });
+        }}
+      >
+        <div>
+          <Label>Name</Label>
+          <Input name="name" value={name} onChange={(event) => setName(event.target.value)} />
+        </div>
+        <div>
+          <Label>Description</Label>
+          <Input
+            name="description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </div>
+        <Button type="submit" variant="outline">
+          Save
+        </Button>
+      </form>
+      <form
+        onSubmit={async (event) => {
+          event.preventDefault();
+          const formData = new FormData();
+          formData.set("name", name);
+          formData.set("description", description);
+          formData.set("archived", duty.archived ? "false" : "true");
+          await onSave(duty.id, formData);
+        }}
+      >
+        <Button type="submit" variant="ghost">
+          {duty.archived ? "Restore" : "Archive"}
+        </Button>
+      </form>
     </div>
   );
 }

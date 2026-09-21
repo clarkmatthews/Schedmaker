@@ -9,7 +9,8 @@ import { ColorSwatchPicker } from "@/components/settings/color-swatch-picker";
 
 type Job = { id: string; name: string; color: string; archived: boolean };
 
-const lastSaved = new Map<string, { name: string }>();
+const lastSaved = new Map<string, { name: string; color: string }>();
+const lastSavedJobs = new Map<string, { name: string; color: string }>();
 
 export function TeamSettings({
   companyId,
@@ -28,6 +29,7 @@ export function TeamSettings({
   const saved = lastSaved.get(team.id);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState(saved?.name ?? team.name);
+  const [color, setColor] = useState(saved?.color ?? team.color);
 
   return (
     <div className="space-y-8">
@@ -38,6 +40,7 @@ export function TeamSettings({
           const formData = new FormData(event.currentTarget);
           const next = {
             name: String(formData.get("name") ?? name),
+            color: String(formData.get("color") ?? color),
           };
           const result = await updateTeamAction(companyId, team.id, formData);
           if (result.error) {
@@ -47,6 +50,7 @@ export function TeamSettings({
           lastSaved.set(team.id, next);
           setError(null);
           setName(next.name);
+          setColor(next.color);
         }}
       >
         <h2 className="text-lg font-semibold">Team settings</h2>
@@ -61,7 +65,7 @@ export function TeamSettings({
         </div>
         <div>
           <Label>Color</Label>
-          <ColorSwatchPicker name="color" defaultValue={team.color} />
+          <ColorSwatchPicker name="color" value={color} onChange={setColor} />
         </div>
         <FieldError message={error} />
         <Button type="submit">Save team</Button>
@@ -71,27 +75,13 @@ export function TeamSettings({
         <h2 className="mb-4 text-lg font-semibold">Jobs</h2>
         <div className="space-y-4">
           {jobs.map((job) => (
-            <form
+            <JobEditor
               key={job.id}
-              className="space-y-2 rounded-md border border-border p-3"
-              action={async (formData) => {
-                await updateJobAction(companyId, team.id, job.id, formData);
-                router.refresh();
-              }}
-            >
-              <div>
-                <Label>Name</Label>
-                <Input name="name" defaultValue={job.name} />
-              </div>
-              <div>
-                <Label>Color</Label>
-                <ColorSwatchPicker name="color" defaultValue={job.color} />
-              </div>
-              <input type="hidden" name="archived" value={job.archived ? "true" : "false"} />
-              <Button type="submit" variant="outline">
-                Update
-              </Button>
-            </form>
+              companyId={companyId}
+              teamId={team.id}
+              job={job}
+              onError={setError}
+            />
           ))}
         </div>
         <form
@@ -113,5 +103,51 @@ export function TeamSettings({
         </form>
       </section>
     </div>
+  );
+}
+
+function JobEditor({
+  companyId,
+  teamId,
+  job,
+  onError,
+}: {
+  companyId: string;
+  teamId: string;
+  job: Job;
+  onError: (message: string | null) => void;
+}) {
+  const saved = lastSavedJobs.get(job.id);
+  const [name, setName] = useState(saved?.name ?? job.name);
+  const [color, setColor] = useState(saved?.color ?? job.color);
+
+  return (
+    <form
+      className="space-y-2 rounded-md border border-border p-3"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const result = await updateJobAction(companyId, teamId, job.id, formData);
+        if (result.error) {
+          onError(result.error);
+          return;
+        }
+        lastSavedJobs.set(job.id, { name, color });
+        onError(null);
+      }}
+    >
+      <div>
+        <Label>Name</Label>
+        <Input name="name" value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+      <div>
+        <Label>Color</Label>
+        <ColorSwatchPicker name="color" value={color} onChange={setColor} />
+      </div>
+      <input type="hidden" name="archived" value={job.archived ? "true" : "false"} />
+      <Button type="submit" variant="outline">
+        Update
+      </Button>
+    </form>
   );
 }

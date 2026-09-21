@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateMmsSettingsAction } from "@/lib/actions/company";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
+
+type SavedMms = {
+  on: boolean;
+  accountSid: string;
+  fromNumber: string;
+  managerPhone: string;
+};
+
+const lastSaved = new Map<string, SavedMms>();
 
 export function MmsSettings({
   companyId,
@@ -21,21 +29,34 @@ export function MmsSettings({
   managerPhone: string;
   authTokenSet: boolean;
 }) {
-  const router = useRouter();
+  const saved = lastSaved.get(companyId);
   const [error, setError] = useState<string | null>(null);
-  const [on, setOn] = useState(enabled);
+  const [on, setOn] = useState(saved?.on ?? enabled);
+  const [sid, setSid] = useState(saved?.accountSid ?? accountSid);
+  const [from, setFrom] = useState(saved?.fromNumber ?? fromNumber);
+  const [manager, setManager] = useState(saved?.managerPhone ?? managerPhone);
+  const [token, setToken] = useState("");
 
   return (
     <form
       className="max-w-xl space-y-4"
-      action={async (formData) => {
+      onSubmit={async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
         formData.set("mmsEnabled", on ? "true" : "false");
         const result = await updateMmsSettingsAction(companyId, formData);
-        if (result.error) setError(result.error);
-        else {
-          setError(null);
-          router.refresh();
+        if (result.error) {
+          setError(result.error);
+          return;
         }
+        lastSaved.set(companyId, {
+          on,
+          accountSid: sid,
+          fromNumber: from,
+          managerPhone: manager,
+        });
+        setToken("");
+        setError(null);
       }}
     >
       <p className="text-sm text-muted">
@@ -64,8 +85,9 @@ export function MmsSettings({
         <Input
           id="mmsAccountSid"
           name="mmsAccountSid"
-          defaultValue={accountSid}
+          value={sid}
           autoComplete="off"
+          onChange={(event) => setSid(event.target.value)}
         />
       </div>
       <div>
@@ -74,8 +96,10 @@ export function MmsSettings({
           id="mmsAuthToken"
           name="mmsAuthToken"
           type="password"
+          value={token}
           autoComplete="new-password"
           placeholder={authTokenSet ? "Leave blank to keep the saved token" : ""}
+          onChange={(event) => setToken(event.target.value)}
         />
       </div>
       <div>
@@ -83,8 +107,9 @@ export function MmsSettings({
         <Input
           id="mmsFromNumber"
           name="mmsFromNumber"
-          defaultValue={fromNumber}
+          value={from}
           placeholder="+15551234567"
+          onChange={(event) => setFrom(event.target.value)}
         />
       </div>
       <div>
@@ -92,8 +117,9 @@ export function MmsSettings({
         <Input
           id="mmsManagerPhone"
           name="mmsManagerPhone"
-          defaultValue={managerPhone}
+          value={manager}
           placeholder="+15557654321"
+          onChange={(event) => setManager(event.target.value)}
         />
         <p className="mt-1 text-xs text-muted">
           Included in the message so employees know who to call with questions.
