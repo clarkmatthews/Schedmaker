@@ -2,6 +2,7 @@
 
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Label, Select } from "@/components/ui/input";
 import { BreakOffsetSelect, TimeSelect } from "@/components/scheduling/time-select";
 import type { BreakInput } from "@/lib/actions/shifts";
@@ -231,7 +232,10 @@ export function ShiftModal({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Breaks</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label>Breaks</Label>
+                <HelpTip topic="shiftBreaks" />
+              </span>
               <Button type="button" variant="ghost" onClick={addBreak}>
                 Add break
               </Button>
@@ -292,7 +296,10 @@ export function ShiftModal({
 
           {responsibilitiesEnabled ? (
             <div className="space-y-2">
-              <Label>Responsibilities</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label>Responsibilities</Label>
+                <HelpTip topic="shiftResponsibilities" />
+              </span>
               {visibleResponsibilities.length ? (
                 <div className="max-h-40 space-y-1.5 overflow-auto rounded-md border border-border p-2">
                   {visibleResponsibilities.map((duty) => (
@@ -315,14 +322,17 @@ export function ShiftModal({
             </div>
           ) : null}
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.published}
-              onChange={(e) => onChange({ ...draft, published: e.target.checked })}
-            />
-            Published
-          </label>
+          <div className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={draft.published}
+                onChange={(e) => onChange({ ...draft, published: e.target.checked })}
+              />
+              Published
+            </label>
+            <HelpTip topic="shiftPublish" />
+          </div>
 
           {overlap ? (
             <p className="text-sm text-red-600">Breaks cannot overlap. Move or shorten one first.</p>

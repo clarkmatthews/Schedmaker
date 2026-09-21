@@ -9,6 +9,7 @@ import {
   slotFromClientX,
 } from "@/lib/scheduling/time-grid";
 import { ShiftCard } from "@/components/scheduling/shift-card";
+import { HelpTip } from "@/components/ui/help-tip";
 import {
   SHIFT_DRAG_TYPE,
   type CalendarRow,
@@ -188,6 +189,7 @@ export function DayView({
                   </svg>
                 </button>
               ) : null}
+              {onCopyLast ? <HelpTip topic="copyLastWeek" tone="onDark" /> : null}
               {format(day, "EEE d")}
             </div>
             <div className="relative min-h-10 flex-1">
@@ -204,8 +206,9 @@ export function DayView({
                 </div>
               ))}
             </div>
-            <div className="sticky right-0 z-30 w-24 shrink-0 border-l border-white/20 bg-ink px-2 py-2 text-right text-sm font-medium">
+            <div className="sticky right-0 z-30 flex w-24 shrink-0 items-center justify-end gap-1 border-l border-white/20 bg-ink px-2 py-2 text-right text-sm font-medium">
               {overtimeEnabled ? "Hours/OT" : "Hours"}
+              <HelpTip topic="hoursOt" tone="onDark" align="end" />
             </div>
           </div>
           {rows.map((row) => {
@@ -220,7 +223,12 @@ export function DayView({
                   className="flex w-36 shrink-0 items-center border-r border-neutral-400 px-2 text-sm font-medium"
                   style={{ minHeight: layout.height }}
                 >
-                  {row.label}
+                  <span className="inline-flex items-center gap-1">
+                    {row.label}
+                    {viewBy === "employee" && row.id === "" ? (
+                      <HelpTip topic="unassigned" />
+                    ) : null}
+                  </span>
                 </div>
                 <div
                   data-day-track

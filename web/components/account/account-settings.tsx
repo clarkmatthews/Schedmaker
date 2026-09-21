@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateAccountAction, updatePasswordAction } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label } from "@/components/ui/input";
 
 export function AccountSettings({
@@ -92,7 +93,10 @@ export function AccountSettings({
       </form>
 
       <section className="space-y-2 rounded-lg border border-border bg-white p-5">
-        <h2 className="text-lg font-semibold">Calendar feed</h2>
+        <h2 className="flex items-center gap-1 text-lg font-semibold">
+          Calendar feed
+          <HelpTip topic="icalFeed" />
+        </h2>
         <p className="text-sm text-muted">
           Subscribe to your published shifts. Keep this URL private.
         </p>

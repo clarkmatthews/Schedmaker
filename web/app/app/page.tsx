@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { firstCompanyHref, getCompanyAccess, getUserCompanies } from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
+import { HelpTip } from "@/components/ui/help-tip";
 
 export default async function AppHomePage() {
   const session = await auth();
@@ -25,7 +26,10 @@ export default async function AppHomePage() {
     <AppShell>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-ink">Your companies</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-ink">
+            Your companies
+            <HelpTip topic="companyVsTeam" />
+          </h1>
           <Link
             href="/new-company"
             className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white hover:bg-teal-dark"

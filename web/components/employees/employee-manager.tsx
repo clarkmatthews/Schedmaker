@@ -15,6 +15,7 @@ import type { EmployeeRecord, EmployeeRoleOption } from "@/lib/employees";
 import { ADMINISTRATOR_SYSTEM_KEY } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
 
 export function EmployeeManager({
@@ -63,14 +64,17 @@ export function EmployeeManager({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <h1 className="text-lg font-semibold">Employees</h1>
           <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showDeactivated}
-                onChange={(event) => router.push(employeeHref(selectedId, event.target.checked))}
-              />
-              Show deactivated
-            </label>
+            <div className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={showDeactivated}
+                  onChange={(event) => router.push(employeeHref(selectedId, event.target.checked))}
+                />
+                Show deactivated
+              </label>
+              <HelpTip topic="employeeDeactivated" align="end" />
+            </div>
             {canEdit ? (
               <Button type="button" onClick={() => setCreating(true)}>
                 Add employee
@@ -148,7 +152,10 @@ export function EmployeeManager({
               <Input id="internalId" name="internalId" />
             </div>
             <div>
-              <Label htmlFor="hourlyRate">Hourly rate</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label htmlFor="hourlyRate">Hourly rate</Label>
+                <HelpTip topic="employeeRate" align="end" />
+              </span>
               <Input
                 id="hourlyRate"
                 name="hourlyRate"
@@ -162,16 +169,19 @@ export function EmployeeManager({
               <Label htmlFor="birthDate">Date of birth</Label>
               <Input id="birthDate" name="birthDate" type="date" />
             </div>
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" name="mealBreakWaiver" className="mt-1" />
-              <span>
-                Signed a first meal-break waiver
-                <span className="mt-0.5 block text-muted">
-                  Suppresses the first meal warning only when the shift is within
-                  the location’s waiver limit (6 hours in California).
+            <div className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" name="mealBreakWaiver" className="mt-1" />
+                <span>
+                  Signed a first meal-break waiver
+                  <span className="mt-0.5 block text-muted">
+                    Suppresses the first meal warning only when the shift is within
+                    the location’s waiver limit (6 hours in California).
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              <HelpTip topic="employeeWaiver" align="end" />
+            </div>
             <div>
               <Label htmlFor="teamId">Team</Label>
               <Select id="teamId" name="teamId" defaultValue={teams[0]?.id ?? ""}>
@@ -245,7 +255,10 @@ export function EmployeeManager({
               <Input id="internalId" name="internalId" defaultValue={selected.internalId} disabled={!canEdit} />
             </div>
             <div>
-              <Label htmlFor="hourlyRate">Hourly rate</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label htmlFor="hourlyRate">Hourly rate</Label>
+                <HelpTip topic="employeeRate" align="end" />
+              </span>
               <Input
                 id="hourlyRate"
                 name="hourlyRate"
@@ -268,7 +281,10 @@ export function EmployeeManager({
               />
             </div>
             <div>
-              <Label htmlFor="roleId">Role</Label>
+              <span className="inline-flex items-center gap-1">
+                <Label htmlFor="roleId">Role</Label>
+                <HelpTip topic="employeeRole" align="end" />
+              </span>
               <Select
                 id="roleId"
                 name="roleId"
@@ -304,30 +320,33 @@ export function EmployeeManager({
                 <p className="mt-1 text-xs text-muted">You cannot change your own role.</p>
               ) : null}
             </div>
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                defaultChecked={selected.mealBreakWaiver}
-                disabled={!canEdit}
-                onChange={async (event) => {
-                  if (!canEdit) return;
-                  await setEmployeeMealWaiverAction(
-                    companyId,
-                    selected.userId,
-                    event.target.checked,
-                  );
-                  router.refresh();
-                }}
-              />
-              <span>
-                Signed a first meal-break waiver
-                <span className="mt-0.5 block text-muted">
-                  Suppresses the first meal warning only when the shift is within
-                  the location’s waiver limit (6 hours in California).
+            <div className="flex items-start gap-2 text-sm">
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  defaultChecked={selected.mealBreakWaiver}
+                  disabled={!canEdit}
+                  onChange={async (event) => {
+                    if (!canEdit) return;
+                    await setEmployeeMealWaiverAction(
+                      companyId,
+                      selected.userId,
+                      event.target.checked,
+                    );
+                    router.refresh();
+                  }}
+                />
+                <span>
+                  Signed a first meal-break waiver
+                  <span className="mt-0.5 block text-muted">
+                    Suppresses the first meal warning only when the shift is within
+                    the location’s waiver limit (6 hours in California).
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+              <HelpTip topic="employeeWaiver" align="end" />
+            </div>
             <div className="space-y-1 text-sm">
               <p className="font-medium">Teams</p>
               {teams.map((team) => (

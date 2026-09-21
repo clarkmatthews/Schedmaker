@@ -16,6 +16,7 @@ import {
 import { dateParam, stepDate, type CalendarView } from "@/lib/scheduling/views";
 import { END_SLOT, slotIndex } from "@/lib/scheduling/time-grid";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { Select } from "@/components/ui/input";
 import { TimezoneClock } from "@/components/scheduling/timezone-clock";
 import {
@@ -296,66 +297,78 @@ export function CalendarShell({
           <TimezoneClock timezone={timezone} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="grid grid-cols-2 rounded-md border border-border bg-white p-0.5">
-            <Button
-              variant={view === "week" ? "primary" : "ghost"}
-              className="w-full px-3 py-1.5"
-              onClick={() => goTo("week", date)}
-            >
-              Week
-            </Button>
-            <Button
-              variant={view === "day" ? "primary" : "ghost"}
-              className="w-full px-3 py-1.5"
-              onClick={() => goTo("day", date)}
-            >
-              Day
-            </Button>
+          <div className="flex items-center gap-1">
+            <div className="grid grid-cols-2 rounded-md border border-border bg-white p-0.5">
+              <Button
+                variant={view === "week" ? "primary" : "ghost"}
+                className="w-full px-3 py-1.5"
+                onClick={() => goTo("week", date)}
+              >
+                Week
+              </Button>
+              <Button
+                variant={view === "day" ? "primary" : "ghost"}
+                className="w-full px-3 py-1.5"
+                onClick={() => goTo("day", date)}
+              >
+                Day
+              </Button>
+            </div>
+            <HelpTip topic="weekVsDay" />
           </div>
-          <Select
-            value={viewBy}
-            onChange={(event) => setViewBy(event.target.value as ViewBy)}
-            className="w-40"
-          >
-            <option value="employee">View by employee</option>
-            <option value="job">View by job</option>
-          </Select>
-          {canEdit ? (
-            <Button
-              variant={allPublished ? "outline" : "primary"}
-              onClick={async () => {
-                await bulkPublishShiftsAction(
-                  companyId,
-                  teamId,
-                  !allPublished,
-                  rangeStartIso,
-                  rangeEndIso,
-                );
-                router.refresh();
-              }}
+          <div className="flex items-center gap-1">
+            <Select
+              value={viewBy}
+              onChange={(event) => setViewBy(event.target.value as ViewBy)}
+              className="w-40"
             >
-              {allPublished
-                ? view === "day"
-                  ? "Unpublish day"
-                  : "Unpublish week"
-                : view === "day"
-                  ? "Publish day"
-                  : "Publish week"}
-            </Button>
+              <option value="employee">View by employee</option>
+              <option value="job">View by job</option>
+            </Select>
+            <HelpTip topic="viewBy" />
+          </div>
+          {canEdit ? (
+            <div className="flex items-center gap-1">
+              <Button
+                variant={allPublished ? "outline" : "primary"}
+                onClick={async () => {
+                  await bulkPublishShiftsAction(
+                    companyId,
+                    teamId,
+                    !allPublished,
+                    rangeStartIso,
+                    rangeEndIso,
+                  );
+                  router.refresh();
+                }}
+              >
+                {allPublished
+                  ? view === "day"
+                    ? "Unpublish day"
+                    : "Unpublish week"
+                  : view === "day"
+                    ? "Publish day"
+                    : "Publish week"}
+              </Button>
+              <HelpTip topic="publish" />
+            </div>
           ) : null}
           {view === "week" ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                window.open(
-                  `/app/companies/${companyId}/teams/${teamId}/scheduling/print?date=${dateParam(date)}`,
-                  "_blank",
-                );
-              }}
-            >
-              Print week
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  window.open(
+                    `/app/companies/${companyId}/teams/${teamId}/scheduling/print?date=${dateParam(date)}`,
+                    "_blank",
+                  );
+                }}
+              >
+                Print week
+              </Button>
+              <HelpTip topic="printWeek" align="end" />
+            </div>
           ) : null}
         </div>
       </div>

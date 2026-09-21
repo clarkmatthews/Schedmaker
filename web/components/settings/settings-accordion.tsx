@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { SETTINGS_HELP } from "@/lib/help/topics";
 import { SETTINGS_SECTIONS, type SettingsSection, type SettingsSectionId } from "@/lib/settings/sections";
 import { cn } from "@/lib/utils";
+import { HelpTip } from "@/components/ui/help-tip";
 
 export function SettingsAccordion({
   companyId,
@@ -28,19 +30,30 @@ export function SettingsAccordion({
             key={item.id}
             className="overflow-hidden rounded-lg border border-border bg-white"
           >
-            <button
-              type="button"
+            <div
               className={cn(
-                "flex w-full items-center justify-between px-5 py-3 text-left font-semibold",
+                "flex w-full items-center gap-2 px-5 py-3",
                 open ? "bg-ink text-white" : "hover:bg-black/5",
               )}
-              onClick={() =>
-                router.push(`/app/companies/${companyId}/settings?section=${item.id}`)
-              }
             >
-              {item.label}
-              <span>{open ? "−" : "+"}</span>
-            </button>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center justify-between text-left font-semibold"
+                onClick={() =>
+                  router.push(`/app/companies/${companyId}/settings?section=${item.id}`)
+                }
+              >
+                {item.label}
+                <span>{open ? "−" : "+"}</span>
+              </button>
+              {SETTINGS_HELP[item.id] ? (
+                <HelpTip
+                  topic={SETTINGS_HELP[item.id]}
+                  tone={open ? "onDark" : "default"}
+                  align="end"
+                />
+              ) : null}
+            </div>
             {open ? (
               <div className="border-t border-border p-5">
                 <fieldset disabled={Boolean(readOnly?.[item.id])} className="min-w-0 space-y-4">

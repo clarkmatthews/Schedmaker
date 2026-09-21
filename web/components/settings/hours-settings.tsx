@@ -18,6 +18,7 @@ import {
 import { endSlotOptions, slotOptions } from "@/lib/scheduling/time-grid";
 import { WEEKDAYS } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
 
 const START_OPTIONS = slotOptions();
@@ -212,9 +213,12 @@ export function HoursSettings({
               onChange={(event) => setName(event.target.value)}
             />
           </div>
-          <p className="text-sm text-muted">
-            Earliest in and latest out define the scheduling grid. Optional business
-            hours paint a lighter band inside that window.
+          <p className="flex items-start gap-1 text-sm text-muted">
+            <span>
+              Earliest in and latest out define the scheduling grid. Optional business
+              hours paint a lighter band inside that window.
+            </span>
+            <HelpTip topic="hoursWindows" />
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">

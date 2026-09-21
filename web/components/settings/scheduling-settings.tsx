@@ -19,6 +19,7 @@ import {
   type MinorRules,
 } from "@/lib/scheduling/minor-rules";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
 
 function minutesToHours(minutes: number) {
@@ -110,8 +111,9 @@ export function SchedulingSettings({
             onChange={(event) => setLocked(event.target.checked)}
           />
           <span>
-            <span className="block font-medium text-ink">
+            <span className="flex items-center gap-1 font-medium text-ink">
               Do not allow schedule changes on today or earlier dates
+              <HelpTip topic="historicalLock" />
             </span>
             <span className="mt-1 block text-muted">
               When this is on, managers cannot create, edit, move, copy, delete, or

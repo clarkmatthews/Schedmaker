@@ -10,6 +10,7 @@ import {
   type AccessLevel,
 } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
 
 type RoleRow = {
@@ -124,8 +125,9 @@ export function RolesSettings({
             <Input id="roleName" name="name" defaultValue={selected.name} required />
           </div>
           {locked ? (
-            <p className="text-sm text-muted">
-              Administrator permissions are locked to Edit on every section.
+            <p className="flex items-start gap-1 text-sm text-muted">
+              <span>Administrator permissions are locked to Edit on every section.</span>
+              <HelpTip topic="administratorLock" />
             </p>
           ) : null}
           <PermissionGrid
@@ -175,7 +177,12 @@ function PermissionGrid({
       <table className="w-full text-left text-sm">
         <thead className="bg-black/3 text-muted">
           <tr>
-            <th className="px-3 py-2 font-medium">Section</th>
+            <th className="px-3 py-2 font-medium">
+              <span className="inline-flex items-center gap-1">
+                Section
+                <HelpTip topic="permissionLevels" />
+              </span>
+            </th>
             {LEVELS.map((level) => (
               <th key={level.id} className="px-3 py-2 font-medium">
                 {level.label}

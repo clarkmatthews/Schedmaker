@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import type { CalendarShift } from "@/components/scheduling/types";
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/ui/help-tip";
 import { estimatedLaborUsd, formatCurrencyUsd, formatHours, onClockMs } from "@/lib/scheduling/totals";
 
 type DialogKind = "violations" | "overtime" | "labor";
@@ -69,16 +70,36 @@ function SummaryTile({
   value,
   onClick,
   valueClassName,
+  help,
 }: {
   label: string;
   value: string;
   onClick?: () => void;
   valueClassName?: string;
+  help?: ReactNode;
 }) {
+  const valueClass = `block text-lg font-semibold tabular-nums ${valueClassName ?? ""}`;
+  if (help) {
+    return (
+      <div className="rounded-md border border-border px-3 py-2">
+        <span className="flex items-center gap-1 text-xs text-muted">
+          {label}
+          {help}
+        </span>
+        {onClick ? (
+          <button type="button" className={`${valueClass} text-left hover:text-teal`} onClick={onClick}>
+            {value}
+          </button>
+        ) : (
+          <span className={valueClass}>{value}</span>
+        )}
+      </div>
+    );
+  }
   const body = (
     <>
       <span className="block text-xs text-muted">{label}</span>
-      <span className={`block text-lg font-semibold tabular-nums ${valueClassName ?? ""}`}>{value}</span>
+      <span className={valueClass}>{value}</span>
     </>
   );
   if (!onClick) {
@@ -206,7 +227,10 @@ export function LaborSummary({
 
   return (
     <section className="rounded-lg border border-border bg-white p-4">
-      <h2 className="text-sm font-semibold text-ink">Schedule overview</h2>
+      <h2 className="flex items-center gap-1 text-sm font-semibold text-ink">
+        Schedule overview
+        <HelpTip topic="laborOverview" />
+      </h2>
       <p className="mt-1 text-sm text-muted">
         Totals for the visible day or week, including overtime plus meal and
         minor-rule warnings after save. Estimated labor uses each employee’s
@@ -229,6 +253,7 @@ export function LaborSummary({
           value={String(violations)}
           valueClassName={violations > 0 ? "text-red-700" : undefined}
           onClick={violations > 0 ? () => setDialog("violations") : undefined}
+          help={<HelpTip topic="laborWarnings" />}
         />
         <SummaryTile label="Shifts flagged" value={String(flagged.length)} />
       </dl>

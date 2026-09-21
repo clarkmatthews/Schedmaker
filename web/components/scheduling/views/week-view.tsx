@@ -9,6 +9,7 @@ import {
   type ViewBy,
 } from "@/components/scheduling/types";
 import { formatHoursOt, uniqueEmployeeCount } from "@/lib/scheduling/totals";
+import { HelpTip } from "@/components/ui/help-tip";
 
 export function WeekView({
   days,
@@ -78,6 +79,7 @@ export function WeekView({
                   </svg>
                 </button>
               ) : null}
+              {onCopyLast ? <HelpTip topic="copyLastWeek" tone="onDark" /> : null}
             </th>
             {days.map((day) => (
               <th key={day.toISOString()} className="px-1 py-1 font-medium">
@@ -92,7 +94,10 @@ export function WeekView({
               </th>
             ))}
             <th className="sticky right-0 z-20 min-w-24 border-l border-white/20 bg-ink px-3 py-2 text-right font-medium">
-              {overtimeEnabled ? "Hours/OT" : "Hours"}
+              <span className="inline-flex items-center justify-end gap-1">
+                {overtimeEnabled ? "Hours/OT" : "Hours"}
+                <HelpTip topic="hoursOt" tone="onDark" align="end" />
+              </span>
             </th>
           </tr>
         </thead>
@@ -104,7 +109,12 @@ export function WeekView({
             return (
               <tr key={`${viewBy}-${row.id}`} className="border-t border-border align-top">
                 <td className="sticky left-0 z-10 min-w-36 bg-white px-3 py-2 font-medium">
-                  {row.label}
+                  <span className="inline-flex items-center gap-1">
+                    {row.label}
+                    {viewBy === "employee" && row.id === "" ? (
+                      <HelpTip topic="unassigned" />
+                    ) : null}
+                  </span>
                 </td>
                 {days.map((day) => {
                   const cellShifts = shiftsFor(row.id, day);
