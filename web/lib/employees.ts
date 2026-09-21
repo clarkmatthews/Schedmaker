@@ -37,8 +37,20 @@ export function parseBirthDate(value: string): Date | null {
   return date;
 }
 
+export function sanitizeHourlyRateInput(value: string) {
+  const cleaned = value.replace(/[$,\s]/g, "").replace(/[^\d.]/g, "");
+  const [whole, ...rest] = cleaned.split(".");
+  if (rest.length === 0) return whole;
+  return `${whole}.${rest.join("").slice(0, 2)}`;
+}
+
+export function formatHourlyRateInput(rate: number | null | undefined) {
+  if (rate == null || !Number.isFinite(rate)) return "";
+  return rate.toFixed(2);
+}
+
 export function parseHourlyRate(value: string): { rate: number | null; error?: string } {
-  const raw = value.trim();
+  const raw = sanitizeHourlyRateInput(value).trim();
   if (!raw) return { rate: null };
   const n = Number(raw);
   if (!Number.isFinite(n) || n < 0) return { rate: null, error: "Enter a valid hourly rate." };

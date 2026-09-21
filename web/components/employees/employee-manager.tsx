@@ -11,12 +11,52 @@ import {
   setEmployeeTeamAction,
   updateEmployeeAction,
 } from "@/lib/actions/employees";
-import type { EmployeeRecord, EmployeeRoleOption } from "@/lib/employees";
+import {
+  formatHourlyRateInput,
+  parseHourlyRate,
+  sanitizeHourlyRateInput,
+  type EmployeeRecord,
+  type EmployeeRoleOption,
+} from "@/lib/employees";
 import { ADMINISTRATOR_SYSTEM_KEY } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
+
+function HourlyRateField({
+  defaultRate,
+  disabled,
+}: {
+  defaultRate?: number | null;
+  disabled?: boolean;
+}) {
+  const [value, setValue] = useState(() => formatHourlyRateInput(defaultRate));
+
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted">
+        $
+      </span>
+      <Input
+        id="hourlyRate"
+        name="hourlyRate"
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="0.00"
+        className="pl-7 tabular-nums"
+        disabled={disabled}
+        value={value}
+        onChange={(event) => setValue(sanitizeHourlyRateInput(event.target.value))}
+        onBlur={() => {
+          const parsed = parseHourlyRate(value);
+          if (parsed.error) return;
+          setValue(formatHourlyRateInput(parsed.rate));
+        }}
+      />
+    </div>
+  );
+}
 
 export function EmployeeManager({
   companyId,
@@ -156,14 +196,7 @@ export function EmployeeManager({
                 <Label htmlFor="hourlyRate">Hourly rate</Label>
                 <HelpTip topic="employeeRate" align="end" />
               </span>
-              <Input
-                id="hourlyRate"
-                name="hourlyRate"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-              />
+              <HourlyRateField />
             </div>
             <div>
               <Label htmlFor="birthDate">Date of birth</Label>
@@ -259,16 +292,7 @@ export function EmployeeManager({
                 <Label htmlFor="hourlyRate">Hourly rate</Label>
                 <HelpTip topic="employeeRate" align="end" />
               </span>
-              <Input
-                id="hourlyRate"
-                name="hourlyRate"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                defaultValue={selected.hourlyRate ?? ""}
-                disabled={!canEdit}
-              />
+              <HourlyRateField defaultRate={selected.hourlyRate} disabled={!canEdit} />
             </div>
             <div>
               <Label htmlFor="birthDate">Date of birth</Label>
