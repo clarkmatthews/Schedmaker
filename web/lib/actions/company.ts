@@ -7,23 +7,48 @@ import {
   ActionError,
   requirePermission,
   requireSession,
+  userCanCreateCompanies,
 } from "@/lib/permissions";
 import { createDefaultRoles } from "@/lib/roles";
+import { DEFAULT_TEAM_NAME, firstTeamOptions } from "@/lib/teams";
 import { WEEKDAYS, type Weekday } from "@/lib/utils";
+
+export async function listDefinedTeamNames() {
+  const user = await requireSession();
+  const teams = await prisma.team.findMany({
+    where: {
+      archived: false,
+      company: {
+        archived: false,
+        directory: { some: { userId: user.id } },
+      },
+    },
+    select: { name: true },
+    orderBy: { name: "asc" },
+  });
+  return firstTeamOptions(teams.map((team) => team.name));
+}
 
 export async function createCompanyAction(formData: FormData) {
   const user = await requireSession();
   const name = String(formData.get("name") ?? "").trim();
   const timezone = String(formData.get("timezone") ?? "UTC") || "UTC";
-  const teamName = String(formData.get("team") ?? "Team") || "Team";
+  const allowedTeams = await listDefinedTeamNames();
+  const teamName = String(formData.get("team") ?? DEFAULT_TEAM_NAME).trim();
 
   if (!name) {
     return { error: "Company name is required." };
+  }
+  if (!allowedTeams.includes(teamName)) {
+    return { error: "Choose a team from the list." };
   }
 
   const current = await prisma.user.findUnique({ where: { id: user.id } });
   if (!current) {
     return { error: "Account not found." };
+  }
+  if (!(await userCanCreateCompanies(current.id, current.support))) {
+    return { error: "You do not have permission to create a company." };
   }
 
   const company = await prisma.$transaction(async (tx) => {

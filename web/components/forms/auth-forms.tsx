@@ -10,8 +10,9 @@ import {
   requestPasswordResetAction,
   signupAction,
 } from "@/lib/actions/auth";
+import { TIMEZONES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FieldError, Input, Label } from "@/components/ui/input";
+import { FieldError, Input, Label, Select } from "@/components/ui/input";
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
@@ -202,10 +203,15 @@ export function ResetConfirmForm({ token }: { token: string }) {
   );
 }
 
-export function NewCompanyForm() {
+export function NewCompanyForm({
+  teamNames,
+}: {
+  teamNames: string[];
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const options = teamNames.length > 0 ? teamNames : ["Team"];
 
   return (
     <form
@@ -228,11 +234,23 @@ export function NewCompanyForm() {
       </div>
       <div>
         <Label htmlFor="team">First team</Label>
-        <Input id="team" name="team" defaultValue="Team" />
+        <Select id="team" name="team" defaultValue={options[0]}>
+          {options.map((team) => (
+            <option key={team} value={team}>
+              {team}
+            </option>
+          ))}
+        </Select>
       </div>
       <div>
         <Label htmlFor="timezone">Timezone</Label>
-        <Input id="timezone" name="timezone" defaultValue="UTC" />
+        <Select id="timezone" name="timezone" defaultValue="UTC">
+          {TIMEZONES.map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+        </Select>
       </div>
       <FieldError message={error} />
       <Button type="submit" disabled={pending} className="w-full">

@@ -98,11 +98,19 @@ export function AppMenu({
     ? {
         id: companyId,
         name: "",
-        capabilities: capabilities ?? { employees: false, schedule: false, settings: false },
+        capabilities: capabilities ?? {
+          employees: false,
+          schedule: false,
+          settings: false,
+          switchCompany: false,
+        },
         teams,
       }
     : null;
   const offCompany = !currentCompany && companies.length > 0;
+  const canSwitchCompany = Boolean(
+    capabilities?.switchCompany || companies.some((company) => company.capabilities.switchCompany),
+  );
 
   function toggle(id: string) {
     setSection((current) => (current === id ? null : id));
@@ -179,6 +187,11 @@ export function AppMenu({
             My account
           </Link>
           <LogoutButton className={`${linkClass()} w-full text-left`} />
+          {canSwitchCompany ? (
+            <Link href="/app" className={`${linkClass()} border-t border-border`} onClick={close}>
+              Switch Company
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -30,6 +30,7 @@ When you are inside a company, the menu can show:
 - **Company settings** — hours, roles, teams, and other company setup
 - **My account** — your name, password, and calendar feed
 - **Log out**
+- **Switch Company** — back to Your companies (if your role can create companies)
 
 When you are not inside a company (on Your companies or My account), the menu lists the companies you can open.
 

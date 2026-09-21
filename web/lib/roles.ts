@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 export const PERMISSION_SECTIONS = [
   { id: "employees", label: "Employees", group: "nav" },
   { id: "schedule", label: "Scheduling", group: "nav" },
+  { id: "createCompanies", label: "Create companies", group: "nav" },
   { id: "company", label: "Company", group: "settings" },
   { id: "hours", label: "Hours", group: "settings" },
   { id: "scheduling", label: "Scheduling rules", group: "settings" },
@@ -20,6 +21,7 @@ export type MenuCapabilities = {
   employees: boolean;
   schedule: boolean;
   settings: boolean;
+  switchCompany: boolean;
 };
 
 export const ADMINISTRATOR_SYSTEM_KEY = "administrator";

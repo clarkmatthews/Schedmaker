@@ -93,7 +93,7 @@ export const HELP_TOPICS = {
   },
   settingsRoles: {
     title: "Roles",
-    body: "Each role sets None, View, or Edit for Employees, Scheduling, and every settings section. Create extra roles if the three defaults are not enough.",
+    body: "Each role sets None, View, or Edit for Employees, Scheduling, Create companies, and every settings section. Create extra roles if the three defaults are not enough.",
   },
   hoursWindows: {
     title: "Schedule window vs open hours",

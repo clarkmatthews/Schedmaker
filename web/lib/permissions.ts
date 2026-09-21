@@ -102,6 +102,12 @@ export function hasSettingsAccess(
   return SETTINGS_PERMISSION_SECTIONS.some((section) => can(access, section, level));
 }
 
+export function canCreateCompanies(
+  access: Pick<CompanyAccess, "support" | "permissions">,
+) {
+  return can(access, "createCompanies", "edit");
+}
+
 export function menuCapabilities(
   access: Pick<CompanyAccess, "support" | "permissions">,
 ): MenuCapabilities {
@@ -109,7 +115,19 @@ export function menuCapabilities(
     employees: can(access, "employees", "view"),
     schedule: can(access, "schedule", "view"),
     settings: hasSettingsAccess(access, "view"),
+    switchCompany: canCreateCompanies(access),
   };
+}
+
+export async function userCanCreateCompanies(userId: string, support: boolean) {
+  if (support) return true;
+  const companies = await getUserCompanies(userId, false);
+  if (companies.length === 0) return true;
+  for (const company of companies) {
+    const access = await getCompanyAccess(userId, company.id);
+    if (canCreateCompanies(access)) return true;
+  }
+  return false;
 }
 
 export function firstCompanyHref(

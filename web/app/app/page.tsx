@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { firstCompanyHref, getCompanyAccess, getUserCompanies } from "@/lib/permissions";
+import {
+  firstCompanyHref,
+  getCompanyAccess,
+  getUserCompanies,
+  userCanCreateCompanies,
+} from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
 import { HelpTip } from "@/components/ui/help-tip";
 
@@ -10,6 +15,7 @@ export default async function AppHomePage() {
   if (!session?.user?.id) redirect("/");
 
   const companies = await getUserCompanies(session.user.id, session.user.support);
+  const canCreate = await userCanCreateCompanies(session.user.id, session.user.support);
   const cards = await Promise.all(
     companies.map(async (company) => {
       const access = await getCompanyAccess(session.user.id, company.id);
@@ -30,12 +36,14 @@ export default async function AppHomePage() {
             Your companies
             <HelpTip topic="companyVsTeam" />
           </h1>
-          <Link
-            href="/new-company"
-            className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white hover:bg-teal-dark"
-          >
-            New company
-          </Link>
+          {canCreate ? (
+            <Link
+              href="/new-company"
+              className="rounded-md bg-teal px-3 py-2 text-sm font-semibold text-white hover:bg-teal-dark"
+            >
+              New company
+            </Link>
+          ) : null}
         </div>
         {cards.length === 0 ? (
           <p className="rounded-lg border border-border bg-white p-6 text-muted">

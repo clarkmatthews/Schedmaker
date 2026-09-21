@@ -14,7 +14,9 @@ Every area of the app has one of three levels:
 | **View** | Can open the page and read it. Cannot save changes. |
 | **Edit** | Can change that area. |
 
-Areas include Employees, Scheduling, and each settings section (Company, Hours, Scheduling rules, MMS, Teams, Responsibilities, Roles).
+Areas include Employees, Scheduling, Create companies, and each settings section (Company, Hours, Scheduling rules, MMS, Teams, Responsibilities, Roles).
+
+**Create companies** Edit lets someone start another workplace and shows **Switch Company** at the bottom of the hamburger so they can return to Your companies. A person with no companies yet can still create their first one.
 
 Scheduling **View** is special: that person only sees **their own published shifts**. Scheduling **Edit** sees the full calendar, drafts, unassigned shifts, and labor totals.
 
