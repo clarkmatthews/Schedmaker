@@ -84,7 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.email = dbUser.email;
         return token;
       } catch {
-        return token;
+        return null;
       }
     },
     session({ session, token }) {

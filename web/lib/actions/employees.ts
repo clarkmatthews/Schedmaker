@@ -17,15 +17,18 @@ async function getOrCreateUser(params: {
   email: string;
   name: string;
   phoneNumber: string | null;
+  companyId: string;
 }) {
   const byEmail = await prisma.user.findUnique({ where: { email: params.email } });
-  if (byEmail) return { user: byEmail, created: false };
+  if (byEmail) return { user: byEmail, created: false as const };
 
   if (params.phoneNumber) {
     const byPhone = await prisma.user.findUnique({
       where: { phoneNumber: params.phoneNumber },
     });
-    if (byPhone) return { user: byPhone, created: false };
+    if (byPhone) {
+      return { error: "That phone number is already used by another account." as const };
+    }
   }
 
   const user = await prisma.user.create({
@@ -33,9 +36,18 @@ async function getOrCreateUser(params: {
       email: params.email,
       name: params.name,
       phoneNumber: params.phoneNumber,
+      profileOwnerCompanyId: params.companyId,
     },
   });
-  return { user, created: true };
+  return { user, created: true as const };
+}
+
+async function belongsToAnotherCompany(userId: string, companyId: string) {
+  const other = await prisma.directory.findFirst({
+    where: { userId, NOT: { companyId } },
+    select: { companyId: true },
+  });
+  return Boolean(other);
 }
 
 export async function createEmployeeAction(companyId: string, formData: FormData) {
@@ -57,8 +69,10 @@ export async function createEmployeeAction(companyId: string, formData: FormData
 
     if (!email) return { error: "Email is required." };
 
-    const { user, created } = await getOrCreateUser({ email, name, phoneNumber });
-    if (birthDate) {
+    const resolved = await getOrCreateUser({ email, name, phoneNumber, companyId });
+    if ("error" in resolved) return { error: resolved.error };
+    const { user, created } = resolved;
+    if (birthDate && (created || !(await belongsToAnotherCompany(user.id, companyId)))) {
       await prisma.user.update({
         where: { id: user.id },
         data: { birthDate },
@@ -139,10 +153,28 @@ export async function updateEmployeeAction(
       data: { internalId, hourlyRate: parsedRate.rate },
     });
 
-    const userUpdate: { birthDate: Date | null; name?: string; email?: string; phoneNumber?: string | null } = {
-      birthDate,
-    };
-    if (!target.confirmedAndActive) {
+    const ownsProfile = target.profileOwnerCompanyId === companyId;
+    const userUpdate: {
+      birthDate?: Date | null;
+      name?: string;
+      email?: string;
+      phoneNumber?: string | null;
+    } = {};
+    if (formData.has("birthDate")) {
+      const shared = !ownsProfile && (await belongsToAnotherCompany(userId, companyId));
+      if (shared) {
+        return {
+          error: "Date of birth stays on their account because they belong to another company.",
+        };
+      }
+      userUpdate.birthDate = birthDate;
+    }
+    if (formData.has("name") || formData.has("email") || formData.has("phoneNumber")) {
+      if (target.confirmedAndActive || !ownsProfile) {
+        return {
+          error: "Name, email, and phone stay on their Schedmaker account.",
+        };
+      }
       const name = String(formData.get("name") ?? "").trim();
       const email = String(formData.get("email") ?? "")
         .trim()
@@ -153,10 +185,12 @@ export async function updateEmployeeAction(
       userUpdate.email = email;
       userUpdate.phoneNumber = phoneNumber;
     }
-    await prisma.user.update({
-      where: { id: userId },
-      data: userUpdate,
-    });
+    if (Object.keys(userUpdate).length > 0) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: userUpdate,
+      });
+    }
 
     revalidatePath(`/app/companies/${companyId}/employees`);
     revalidatePath(`/app/companies/${companyId}`, "layout");

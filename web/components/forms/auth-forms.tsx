@@ -60,8 +60,9 @@ export function SignupForm() {
   if (done) {
     return (
       <p className="text-sm text-ink">
-        Check your email for an activation link. In local development the link
-        is printed in the server console.
+        Check your email. A new address gets an activation link. An address that
+        already has an account gets a reminder to log in or reset the password.
+        In local development the message is printed in the server console.
       </p>
     );
   }

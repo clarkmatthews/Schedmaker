@@ -1,8 +1,39 @@
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { prisma } from "@/lib/db";
+
+const HASH_PREFIX = "sha256:";
 
 export function createRawToken() {
   return randomBytes(32).toString("hex");
+}
+
+export function hashEmailToken(token: string) {
+  if (token.startsWith(HASH_PREFIX)) return token;
+  return `${HASH_PREFIX}${createHash("sha256").update(token).digest("hex")}`;
+}
+
+let upgradePromise: Promise<void> | null = null;
+
+function upgradePlaintextTokens() {
+  if (upgradePromise) return upgradePromise;
+  upgradePromise = (async () => {
+    const rows = await prisma.emailToken.findMany({
+      select: { id: true, token: true },
+    });
+    for (const row of rows) {
+      if (row.token.startsWith(HASH_PREFIX)) continue;
+      await prisma.emailToken
+        .update({
+          where: { id: row.id },
+          data: { token: hashEmailToken(row.token) },
+        })
+        .catch(() => undefined);
+    }
+  })().catch((error) => {
+    upgradePromise = null;
+    throw error;
+  });
+  return upgradePromise;
 }
 
 export async function issueEmailToken(params: {
@@ -11,11 +42,12 @@ export async function issueEmailToken(params: {
   type: "activate" | "reset" | "email_change";
   hours?: number;
 }) {
+  await upgradePlaintextTokens();
   const token = createRawToken();
   const hours = params.hours ?? 2;
   await prisma.emailToken.create({
     data: {
-      token,
+      token: hashEmailToken(token),
       type: params.type,
       email: params.email,
       userId: params.userId,
@@ -26,8 +58,9 @@ export async function issueEmailToken(params: {
 }
 
 export async function consumeEmailToken(token: string, type: string) {
+  await upgradePlaintextTokens();
   const row = await prisma.emailToken.findUnique({
-    where: { token },
+    where: { token: hashEmailToken(token) },
     include: { user: true },
   });
   if (!row || row.type !== type || row.expiresAt < new Date()) {

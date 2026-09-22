@@ -21,7 +21,10 @@ export default async function EmployeeDetailPage({
   const [directory, roles, teams] = await Promise.all([
     prisma.directory.findMany({
       where: { companyId },
-      include: { user: { include: { workerOf: true } }, role: true },
+      include: {
+        user: { include: { workerOf: true, directoryEntries: { select: { companyId: true } } } },
+        role: true,
+      },
       orderBy: { user: { name: "asc" } },
     }),
     prisma.role.findMany({ where: { companyId }, orderBy: { sortOrder: "asc" } }),
@@ -49,6 +52,7 @@ export default async function EmployeeDetailPage({
         mapDirectoryEmployee(
           entry,
           teams.map((team) => team.id),
+          companyId,
         ),
       )}
     />

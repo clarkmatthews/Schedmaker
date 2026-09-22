@@ -8,7 +8,7 @@ import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { emptyToNull } from "@/lib/utils";
 import { consumeEmailToken, issueEmailToken } from "@/lib/tokens";
-import { notifyActivation, notifyPasswordReset } from "@/lib/notifications";
+import { notifyAccountExists, notifyActivation, notifyPasswordReset } from "@/lib/notifications";
 import { ActionError, requireSession } from "@/lib/permissions";
 import { hitRateLimit, isRateLimited, resetRateLimit } from "@/lib/rate-limit";
 
@@ -29,20 +29,21 @@ function passwordTooShort(password: string) {
 
 async function clientIp() {
   const h = await headers();
-  return (
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    h.get("x-real-ip") ||
-    "unknown"
-  );
+  const forwarded = h
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return forwarded?.at(-1) || h.get("x-real-ip") || "unknown";
 }
 
 export async function signupAction(formData: FormData) {
   const ip = await clientIp();
   const signupKey = `signup:${ip}`;
-  if (isRateLimited(signupKey, 5)) {
+  if (await isRateLimited(signupKey, 5)) {
     return { error: AUTH_RATE_LIMIT_MESSAGE };
   }
-  hitRateLimit(signupKey);
+  await hitRateLimit(signupKey);
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "")
@@ -54,7 +55,8 @@ export async function signupAction(formData: FormData) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return { error: "An account with that email already exists. Try logging in or resetting your password." };
+    await notifyAccountExists(email);
+    return { ok: true as const };
   }
 
   const user = await prisma.user.create({
@@ -76,7 +78,8 @@ export async function loginAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const ip = await clientIp();
   const loginKey = `login:${ip}:${email}`;
-  if (isRateLimited(loginKey, 5)) {
+  const loginEmailKey = `login-email:${email}`;
+  if ((await isRateLimited(loginKey, 5)) || (await isRateLimited(loginEmailKey, 10))) {
     return { error: AUTH_RATE_LIMIT_MESSAGE };
   }
   try {
@@ -92,17 +95,20 @@ export async function loginAction(formData: FormData) {
       "error" in result &&
       Boolean((result as { error?: string }).error);
     if (failed) {
-      hitRateLimit(loginKey);
+      await hitRateLimit(loginKey);
+      await hitRateLimit(loginEmailKey);
       return { error: LOGIN_FAIL_MESSAGE };
     }
   } catch (error) {
     if (error instanceof AuthError) {
-      hitRateLimit(loginKey);
+      await hitRateLimit(loginKey);
+      await hitRateLimit(loginEmailKey);
       return { error: LOGIN_FAIL_MESSAGE };
     }
     throw error;
   }
-  resetRateLimit(loginKey);
+  await resetRateLimit(loginKey);
+  await resetRateLimit(loginEmailKey);
   redirect("/app");
 }
 
@@ -158,10 +164,10 @@ export async function activateAction(token: string, formData: FormData) {
 export async function requestPasswordResetAction(formData: FormData) {
   const ip = await clientIp();
   const resetKey = `reset:${ip}`;
-  if (isRateLimited(resetKey, 5)) {
+  if (await isRateLimited(resetKey, 5)) {
     return { error: AUTH_RATE_LIMIT_MESSAGE };
   }
-  hitRateLimit(resetKey);
+  await hitRateLimit(resetKey);
 
   const email = String(formData.get("email") ?? "")
     .trim()

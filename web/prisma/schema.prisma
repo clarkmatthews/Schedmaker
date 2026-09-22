@@ -17,6 +17,7 @@ model User {
   confirmedAndActive Boolean  @default(false)
   support            Boolean  @default(false)
   birthDate          DateTime? @db.Date
+  profileOwnerCompanyId String? @db.Uuid
   memberSince        DateTime @default(now())
   icalToken          String   @unique @default(uuid())
   sessionVersion     Int      @default(0)
@@ -26,6 +27,12 @@ model User {
   workerOf         Worker[]
   shifts           Shift[]
   coveringBreaks   BreakCoverage[]
+}
+
+model AuthRateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
 }
 
 model EmailToken {

@@ -256,13 +256,18 @@ export function EmployeeManager({
             {selected.deactivated ? (
               <p className="text-sm text-muted">This employee is deactivated.</p>
             ) : null}
+            {canEdit && !selected.canEditIdentity && !selected.confirmedAndActive ? (
+              <p className="text-sm text-muted">
+                This person already has a Schedmaker account. Name, email, and phone stay on that account.
+              </p>
+            ) : null}
             <div>
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 name="name"
                 defaultValue={selected.name}
-                disabled={selected.confirmedAndActive}
+                disabled={!canEdit || !selected.canEditIdentity}
               />
             </div>
             <div>
@@ -271,7 +276,7 @@ export function EmployeeManager({
                 id="email"
                 name="email"
                 defaultValue={selected.email}
-                disabled={selected.confirmedAndActive}
+                disabled={!canEdit || !selected.canEditIdentity}
               />
             </div>
             <div>
@@ -280,7 +285,7 @@ export function EmployeeManager({
                 id="phoneNumber"
                 name="phoneNumber"
                 defaultValue={selected.phoneNumber ?? ""}
-                disabled={selected.confirmedAndActive}
+                disabled={!canEdit || !selected.canEditIdentity}
               />
             </div>
             <div>
@@ -301,8 +306,13 @@ export function EmployeeManager({
                 name="birthDate"
                 type="date"
                 defaultValue={selected.birthDate ?? ""}
-                disabled={!canEdit}
+                disabled={!canEdit || !selected.canEditBirthDate}
               />
+              {canEdit && !selected.canEditBirthDate ? (
+                <p className="mt-1 text-sm text-muted">
+                  Date of birth stays on their account because they belong to another company.
+                </p>
+              ) : null}
             </div>
             <div>
               <span className="inline-flex items-center gap-1">

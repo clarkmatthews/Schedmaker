@@ -18,6 +18,8 @@ export type EmployeeRecord = {
   roleId: string;
   roleName: string;
   teamIds: string[];
+  canEditIdentity: boolean;
+  canEditBirthDate: boolean;
 };
 
 export function parseBirthDate(value: string): Date | null {
@@ -72,11 +74,16 @@ export function mapDirectoryEmployee(
       phoneNumber: string | null;
       confirmedAndActive: boolean;
       birthDate: Date | null;
+      profileOwnerCompanyId: string | null;
+      directoryEntries: { companyId: string }[];
       workerOf: { teamId: string }[];
     };
   },
   teamIds: string[],
+  companyId: string,
 ): EmployeeRecord {
+  const ownsProfile = entry.user.profileOwnerCompanyId === companyId;
+  const sharedAccount = entry.user.directoryEntries.some((row) => row.companyId !== companyId);
   return {
     userId: entry.userId,
     name: entry.user.name,
@@ -97,5 +104,7 @@ export function mapDirectoryEmployee(
     teamIds: entry.user.workerOf
       .filter((worker) => teamIds.includes(worker.teamId))
       .map((worker) => worker.teamId),
+    canEditIdentity: ownsProfile && !entry.user.confirmedAndActive,
+    canEditBirthDate: ownsProfile || !sharedAccount,
   };
 }

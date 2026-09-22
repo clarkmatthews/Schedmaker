@@ -36,6 +36,12 @@ async function upsertUser(params: {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && process.env.SEED_ALLOW !== "1") {
+    throw new Error(
+      "Refusing to seed in production. The demo accounts use a published password and include a support user who can open every company. Set SEED_ALLOW=1 only for a disposable database.",
+    );
+  }
+
   const support = await upsertUser({
     email: "support@schedmaker.local",
     name: "Support Admin",

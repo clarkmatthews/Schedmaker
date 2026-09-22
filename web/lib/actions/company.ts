@@ -11,6 +11,7 @@ import {
 } from "@/lib/permissions";
 import { createDefaultRoles } from "@/lib/roles";
 import { DEFAULT_TEAM_NAME, firstTeamOptions } from "@/lib/teams";
+import { encryptSecret, isEncryptedSecret } from "@/lib/secrets";
 import { WEEKDAYS, type Weekday } from "@/lib/utils";
 
 export async function listDefinedTeamNames() {
@@ -195,7 +196,13 @@ export async function updateMmsSettingsAction(companyId: string, formData: FormD
     });
     if (!existing) return { error: "Company not found." };
 
-    const nextToken = authToken || existing.mmsAuthToken;
+    let nextToken = existing.mmsAuthToken;
+    try {
+      if (authToken) nextToken = encryptSecret(authToken);
+      else if (nextToken && !isEncryptedSecret(nextToken)) nextToken = encryptSecret(nextToken);
+    } catch {
+      return { error: "AUTH_SECRET is required before a Twilio token can be saved." };
+    }
     if (enabled) {
       if (!accountSid) return { error: "Twilio Account SID is required." };
       if (!nextToken) return { error: "Twilio Auth Token is required." };

@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/db";
 import { mmsConfigReady, sendMms } from "@/lib/notifications/mms";
+import { decryptSecret, encryptSecret, isEncryptedSecret } from "@/lib/secrets";
 import {
   loadWeeklySchedule,
   publishedWeekBounds,
@@ -108,10 +109,29 @@ export async function notifyPublishedSchedule(params: {
     },
   });
 
+  let authToken: string;
+  try {
+    authToken = company.mmsAuthToken;
+    if (authToken && !isEncryptedSecret(authToken)) {
+      const plain = authToken;
+      authToken = encryptSecret(plain);
+      await prisma.company.update({
+        where: { id: company.id },
+        data: { mmsAuthToken: authToken },
+      });
+      authToken = plain;
+    } else {
+      authToken = decryptSecret(authToken);
+    }
+  } catch (error) {
+    console.error("[mms] could not read Twilio token", error);
+    return;
+  }
+
   await sendMms({
     config: {
       accountSid: company.mmsAccountSid,
-      authToken: company.mmsAuthToken,
+      authToken,
       fromNumber: company.mmsFromNumber,
     },
     to: user.phoneNumber,

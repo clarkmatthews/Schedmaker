@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { prisma } from "@/lib/db";
+import { escapeHtml } from "./html";
 import { sendEmail } from "./email";
 import { sendSms } from "./sms";
 
@@ -16,7 +17,7 @@ export async function notifyOnboardWorker(companyId: string, userId: string) {
 
   const subject = `You've been added to ${company.name} on Schedmaker`;
   const body = `Hi ${user.name || "there"}, you were added to ${company.name}. Activate or log in to see your schedule.`;
-  await sendEmail({ to: user.email, subject, html: `<p>${body}</p>` });
+  await sendEmail({ to: user.email, subject, html: `<p>${escapeHtml(body)}</p>` });
   if (user.phoneNumber) {
     await sendSms({ to: user.phoneNumber, body });
   }
@@ -28,7 +29,7 @@ export async function notifyNewShifts(
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
-  const list = shifts.map((s) => shiftWindow(s.start, s.stop)).join("<br>");
+  const list = shifts.map((s) => escapeHtml(shiftWindow(s.start, s.stop))).join("<br>");
   await sendEmail({
     to: user.email,
     subject: shifts.length === 1 ? "New shift assigned" : "New shifts assigned",
@@ -42,7 +43,7 @@ export async function notifyRemovedShifts(
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
-  const list = shifts.map((s) => shiftWindow(s.start, s.stop)).join("<br>");
+  const list = shifts.map((s) => escapeHtml(shiftWindow(s.start, s.stop))).join("<br>");
   await sendEmail({
     to: user.email,
     subject: shifts.length === 1 ? "Shift removed" : "Shifts removed",
@@ -57,8 +58,8 @@ export async function notifyChangedShift(
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return;
-  const from = shiftWindow(oldShift.start, oldShift.stop);
-  const to = shiftWindow(newShift.start, newShift.stop);
+  const from = escapeHtml(shiftWindow(oldShift.start, oldShift.stop));
+  const to = escapeHtml(shiftWindow(newShift.start, newShift.stop));
   await sendEmail({
     to: user.email,
     subject: "Shift updated",
@@ -67,17 +68,28 @@ export async function notifyChangedShift(
 }
 
 export async function notifyActivation(email: string, name: string, url: string) {
+  const safeName = escapeHtml(name || "there");
+  const safeUrl = escapeHtml(url);
   await sendEmail({
     to: email,
     subject: "Activate your Schedmaker account",
-    html: `<p>Hi ${name || "there"},</p><p>Confirm your account and set a password:</p><p><a href="${url}">${url}</a></p>`,
+    html: `<p>Hi ${safeName},</p><p>Confirm your account and set a password:</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
+  });
+}
+
+export async function notifyAccountExists(email: string) {
+  await sendEmail({
+    to: email,
+    subject: "Schedmaker sign-up",
+    html: "<p>An account with this email already exists. Log in, or reset your password if you need a new one.</p>",
   });
 }
 
 export async function notifyPasswordReset(email: string, url: string) {
+  const safeUrl = escapeHtml(url);
   await sendEmail({
     to: email,
     subject: "Reset your Schedmaker password",
-    html: `<p>Reset your password using this link (expires in 2 hours):</p><p><a href="${url}">${url}</a></p>`,
+    html: `<p>Reset your password using this link (expires in 2 hours):</p><p><a href="${safeUrl}">${safeUrl}</a></p>`,
   });
 }
