@@ -70,11 +70,11 @@ Every person has one **home store**. The home store can loan them to other compa
 
 ### Employee loan management
 
-**Employee loans** sits in the menu between Company settings and My account. It is available to Administrators and to anyone whose role can edit Company settings.
+**Employee loans** is a management tool in the hamburger menu. It is available to Administrators and to anyone whose role can edit Company settings.
 
 - The list is everyone currently loaned out from a store you can administer: name, home store, and each destination.
 - **Change** replaces that person’s full set of loans. **Remove** ends one destination. When the last destination is removed, they leave the list.
-- Only the home store can change loans. A loan cannot point at the home store, and a store where the person already has a directory entry is not a loan.
+- Only the home store can change loans (or administrators). A loan cannot point at the home store, and a store where the person already has a directory entry is not a loan.
 
 ### Hours templates
 
