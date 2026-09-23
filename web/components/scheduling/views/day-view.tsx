@@ -8,6 +8,7 @@ import {
   formatSlot,
   slotFromClientX,
 } from "@/lib/scheduling/time-grid";
+import { LoanedMark } from "@/components/scheduling/loaned-mark";
 import { ShiftCard } from "@/components/scheduling/shift-card";
 import { HelpTip } from "@/components/ui/help-tip";
 import {
@@ -141,7 +142,9 @@ export function DayView({
     hasTemplate ? hours?.businessEndSlot ?? null : null,
     hasTemplate,
   );
-  const allShifts = rows.flatMap((row) => shiftsFor(row.id, day));
+  const allShifts = rows
+    .flatMap((row) => shiftsFor(row.id, day))
+    .filter((shift) => !shift.external);
   const hourTotals = marks.map((slot) => {
     const start = slotInstant(day, slot, timezone);
     const end = slotInstant(day, slot + 4, timezone);
@@ -224,6 +227,7 @@ export function DayView({
                   style={{ minHeight: layout.height }}
                 >
                   <span className="inline-flex items-center gap-1">
+                    {row.loaned ? <LoanedMark homeCompanyName={row.homeCompanyName} /> : null}
                     {row.label}
                     {viewBy === "employee" && row.id === "" ? (
                       <HelpTip topic="unassigned" />
@@ -355,8 +359,8 @@ export function DayView({
                           color={row.color}
                           timezone={timezone}
                           compact
-                          canEdit={Boolean(onPlace)}
-                          onOpen={onOpen}
+                          canEdit={Boolean(onPlace) && !shift.external}
+                          onOpen={shift.external ? undefined : onOpen}
                         />
                       </div>
                     );
@@ -367,8 +371,14 @@ export function DayView({
                   style={{ minHeight: layout.height }}
                 >
                   {formatHoursOt(
-                    rowShifts.reduce((sum, shift) => sum + (shift.regularMs ?? 0), 0),
-                    rowShifts.reduce((sum, shift) => sum + (shift.otMs ?? 0), 0),
+                    rowShifts.reduce(
+                      (sum, shift) => sum + (shift.external ? 0 : (shift.regularMs ?? 0)),
+                      0,
+                    ),
+                    rowShifts.reduce(
+                      (sum, shift) => sum + (shift.external ? 0 : (shift.otMs ?? 0)),
+                      0,
+                    ),
                     overtimeEnabled,
                   )}
                 </div>

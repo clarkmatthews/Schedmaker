@@ -13,7 +13,7 @@ export const HELP_TOPICS = {
   },
   publish: {
     title: "Publish",
-    body: "New shifts start as drafts. Employees only see published shifts assigned to them. Publish day or week makes every shift in this view visible to staff. Unpublish hides them again.",
+    body: "New shifts start as drafts. Employees only see published shifts assigned to them. Publish day or week publishes every shift on a date that can still be changed. When today and earlier dates are locked, drafts on those days are deleted and the later days are published. Shifts already published on locked days stay as they are. Unpublish hides them again.",
   },
   printWeek: {
     title: "Print week",
@@ -33,7 +33,7 @@ export const HELP_TOPICS = {
   },
   laborOverview: {
     title: "Schedule overview",
-    body: "Totals for the day or week you are looking at. Hours are on-clock time. Overtime uses the company’s rules. Estimated labor multiplies hours by each person’s rate, with overtime at 1.5×. Click a tile for the breakdown.",
+    body: "Totals for the day or week you are looking at. Hours are on-clock time. Overtime uses the company’s rules and includes hours worked at other restaurants that week. Estimated labor uses the job rate, or the employee’s override when that is above $0.00, with overtime at 1.5×. Click a tile for the breakdown.",
   },
   laborWarnings: {
     title: "Rule warnings",
@@ -56,8 +56,8 @@ export const HELP_TOPICS = {
     body: "The role decides what this person can see and change in this company. You cannot change your own role. The company must keep at least one Administrator.",
   },
   employeeRate: {
-    title: "Hourly rate",
-    body: "Used only to estimate labor cost on the schedule. People without a rate still appear on the calendar; they just do not add to the dollar total. Overtime is costed at 1.5× this rate.",
+    title: "Override Hourly Rate",
+    body: "Replaces the job’s default rate when estimating labor. Leave this blank or 0.00 to use the rate on the job. Overtime is costed at 1.5× whichever rate applies.",
   },
   employeeWaiver: {
     title: "Meal-break waiver",
@@ -113,7 +113,7 @@ export const HELP_TOPICS = {
   },
   historicalLock: {
     title: "Lock past dates",
-    body: "When this is on, nobody can create, move, copy, delete, or publish shifts on today or any earlier date in the company time zone. Future dates still edit normally.",
+    body: "When this is on, nobody can create, move, copy, delete, or publish shifts on today or any earlier date in the company time zone. Publishing a week deletes drafts on those days and publishes the later days. Shifts already published on locked days stay put. Future dates still edit normally.",
   },
 } as const;
 

@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
 import { EmployeeManager } from "@/components/employees/employee-manager";
-import { mapDirectoryEmployee } from "@/lib/employees";
+import { loadEmployeeBoard } from "@/lib/employee-board";
 import { can, getCompanyAccess } from "@/lib/permissions";
 
 export default async function EmployeeDetailPage({
@@ -18,21 +17,7 @@ export default async function EmployeeDetailPage({
   const access = await getCompanyAccess(session.user.id, companyId);
   if (!can(access, "employees", "view")) redirect("/account");
   const { deactivated } = await searchParams;
-  const [directory, roles, teams] = await Promise.all([
-    prisma.directory.findMany({
-      where: { companyId },
-      include: {
-        user: { include: { workerOf: true, directoryEntries: { select: { companyId: true } } } },
-        role: true,
-      },
-      orderBy: { user: { name: "asc" } },
-    }),
-    prisma.role.findMany({ where: { companyId }, orderBy: { sortOrder: "asc" } }),
-    prisma.team.findMany({
-      where: { companyId, archived: false },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const board = await loadEmployeeBoard(companyId);
 
   return (
     <EmployeeManager
@@ -41,20 +26,12 @@ export default async function EmployeeDetailPage({
       currentUserId={session.user.id}
       canEdit={can(access, "employees", "edit")}
       canAssignAdministrator={can(access, "roles", "edit")}
-      roles={roles.map((role) => ({
-        id: role.id,
-        name: role.name,
-        systemKey: role.systemKey,
-      }))}
+      roles={board.roles}
       showDeactivated={deactivated === "1"}
-      teams={teams.map((team) => ({ id: team.id, name: team.name }))}
-      employees={directory.map((entry) =>
-        mapDirectoryEmployee(
-          entry,
-          teams.map((team) => team.id),
-          companyId,
-        ),
-      )}
+      teams={board.teams}
+      companies={board.companies}
+      jobs={board.jobs}
+      employees={board.employees}
     />
   );
 }

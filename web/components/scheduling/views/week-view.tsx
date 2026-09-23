@@ -9,6 +9,7 @@ import {
   type ViewBy,
 } from "@/components/scheduling/types";
 import { formatHoursOt, uniqueEmployeeCount } from "@/lib/scheduling/totals";
+import { LoanedMark } from "@/components/scheduling/loaned-mark";
 import { HelpTip } from "@/components/ui/help-tip";
 
 export function WeekView({
@@ -39,7 +40,9 @@ export function WeekView({
   onCopyLast?: () => void;
 }) {
   const dayTotals = days.map((day) => {
-    const shifts = rows.flatMap((row) => shiftsFor(row.id, day));
+    const shifts = rows
+      .flatMap((row) => shiftsFor(row.id, day))
+      .filter((shift) => !shift.external);
     return {
       day,
       regularMs: shifts.reduce((sum, shift) => sum + (shift.regularMs ?? 0), 0),
@@ -103,13 +106,16 @@ export function WeekView({
         </thead>
         <tbody>
           {rows.map((row) => {
-            const rowShifts = days.flatMap((day) => shiftsFor(row.id, day));
+            const rowShifts = days
+              .flatMap((day) => shiftsFor(row.id, day))
+              .filter((shift) => !shift.external);
             const rowRegular = rowShifts.reduce((sum, shift) => sum + (shift.regularMs ?? 0), 0);
             const rowOt = rowShifts.reduce((sum, shift) => sum + (shift.otMs ?? 0), 0);
             return (
               <tr key={`${viewBy}-${row.id}`} className="border-t border-border align-top">
                 <td className="sticky left-0 z-10 min-w-36 bg-white px-3 py-2 font-medium">
                   <span className="inline-flex items-center gap-1">
+                    {row.loaned ? <LoanedMark homeCompanyName={row.homeCompanyName} /> : null}
                     {row.label}
                     {viewBy === "employee" && row.id === "" ? (
                       <HelpTip topic="unassigned" />
@@ -147,8 +153,8 @@ export function WeekView({
                             viewBy={viewBy}
                             color={row.color}
                             timezone={timezone}
-                            canEdit={Boolean(onPlace)}
-                            onOpen={onOpen}
+                            canEdit={Boolean(onPlace) && !shift.external}
+                            onOpen={shift.external ? undefined : onOpen}
                           />
                         ))}
                         {onCreate ? (

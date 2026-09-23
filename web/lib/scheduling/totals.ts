@@ -80,13 +80,21 @@ export function formatCurrencyUsd(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
 }
 
+export function resolvePayRate(
+  override: number | null | undefined,
+  jobRate: number | null | undefined,
+) {
+  if (override != null && Number.isFinite(override) && override > 0) return override;
+  if (jobRate != null && Number.isFinite(jobRate) && jobRate > 0) return jobRate;
+  return null;
+}
+
 export function estimatedLaborUsd(
-  shifts: Array<{ userId?: string | null; regularMs?: number; otMs?: number }>,
-  rates: Record<string, number>,
+  shifts: Array<{ userId?: string | null; regularMs?: number; otMs?: number; payRate?: number | null }>,
 ) {
   return shifts.reduce((sum, shift) => {
     if (!shift.userId) return sum;
-    const rate = rates[shift.userId];
+    const rate = shift.payRate;
     if (!rate || !Number.isFinite(rate) || rate <= 0) return sum;
     const regularHours = (shift.regularMs ?? 0) / 3_600_000;
     const otHours = (shift.otMs ?? 0) / 3_600_000;

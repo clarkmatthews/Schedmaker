@@ -150,6 +150,15 @@ async function main() {
       update: {},
       create: { teamId: team.id, userId: user.id },
     });
+    if (!user.homeCompanyId) {
+      const memberships = await prisma.directory.count({ where: { userId: user.id } });
+      if (memberships === 1) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { homeCompanyId: company.id },
+        });
+      }
+    }
   }
 
   const restaurantHours =

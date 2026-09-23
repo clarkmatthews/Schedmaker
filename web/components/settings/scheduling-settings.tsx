@@ -136,7 +136,8 @@ export function SchedulingSettings({
             <span className="mt-1 block text-muted">
               When this is on, managers cannot create, edit, move, copy, delete, or
               publish shifts for the current day or any prior day in this location’s
-              timezone.
+              timezone. Publishing a week removes drafts on those days and publishes
+              the rest of the week.
             </span>
           </span>
         </label>

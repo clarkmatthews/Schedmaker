@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { getCompanyAccess, menuCapabilities } from "@/lib/permissions";
+import { canEnterCompany, getCompanyAccess, menuCapabilities } from "@/lib/permissions";
 import { AppShell } from "@/components/app/app-shell";
 
 export default async function CompanyLayout({
@@ -22,7 +22,7 @@ export default async function CompanyLayout({
   if (!company) notFound();
 
   const access = await getCompanyAccess(session.user.id, companyId);
-  if (!access.support && !access.inDirectory) {
+  if (!canEnterCompany(access)) {
     redirect("/app");
   }
 

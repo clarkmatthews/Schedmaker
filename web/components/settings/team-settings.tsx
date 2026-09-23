@@ -3,14 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJobAction, updateJobAction, updateTeamAction } from "@/lib/actions/teams";
+import { formatHourlyRateInput, sanitizeHourlyRateInput } from "@/lib/employees";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
 import { ColorSwatchPicker } from "@/components/settings/color-swatch-picker";
 
-type Job = { id: string; name: string; color: string; archived: boolean };
+type Job = {
+  id: string;
+  name: string;
+  color: string;
+  archived: boolean;
+  hourlyRate: number | null;
+};
 
 const lastSaved = new Map<string, { name: string; color: string }>();
-const lastSavedJobs = new Map<string, { name: string; color: string }>();
+const lastSavedJobs = new Map<string, { name: string; color: string; hourlyRate: string }>();
 
 export function TeamSettings({
   companyId,
@@ -96,6 +103,15 @@ export function TeamSettings({
             <Input id={`jobName-${team.id}`} name="name" placeholder="Server" required />
           </div>
           <div>
+            <Label htmlFor={`jobRate-${team.id}`}>Default hourly rate</Label>
+            <Input
+              id={`jobRate-${team.id}`}
+              name="hourlyRate"
+              inputMode="decimal"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
             <Label>Color</Label>
             <ColorSwatchPicker name="color" defaultValue="48B7AB" />
           </div>
@@ -120,6 +136,9 @@ function JobEditor({
   const saved = lastSavedJobs.get(job.id);
   const [name, setName] = useState(saved?.name ?? job.name);
   const [color, setColor] = useState(saved?.color ?? job.color);
+  const [hourlyRate, setHourlyRate] = useState(
+    saved?.hourlyRate ?? formatHourlyRateInput(job.hourlyRate),
+  );
 
   return (
     <form
@@ -132,13 +151,23 @@ function JobEditor({
           onError(result.error);
           return;
         }
-        lastSavedJobs.set(job.id, { name, color });
+        lastSavedJobs.set(job.id, { name, color, hourlyRate });
         onError(null);
       }}
     >
       <div>
         <Label>Name</Label>
         <Input name="name" value={name} onChange={(event) => setName(event.target.value)} />
+      </div>
+      <div>
+        <Label>Default hourly rate</Label>
+        <Input
+          name="hourlyRate"
+          inputMode="decimal"
+          placeholder="0.00"
+          value={hourlyRate}
+          onChange={(event) => setHourlyRate(sanitizeHourlyRateInput(event.target.value))}
+        />
       </div>
       <div>
         <Label>Color</Label>

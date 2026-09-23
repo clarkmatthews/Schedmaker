@@ -21,6 +21,7 @@ export type MenuCapabilities = {
   employees: boolean;
   schedule: boolean;
   settings: boolean;
+  loans: boolean;
   switchCompany: boolean;
 };
 

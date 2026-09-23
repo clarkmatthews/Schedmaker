@@ -27,11 +27,19 @@ export function validateShiftTimes(start: Date, stop: Date) {
   }
 }
 
+export function overlapShiftError(companyName: string | null, sameCompany: boolean) {
+  if (!sameCompany && companyName) {
+    return `This employee already has a shift at ${companyName} during that time.`;
+  }
+  return "This employee already has a shift during that time.";
+}
+
 export async function assertNoUserOverlap(params: {
   userId: string | null;
   start: Date;
   stop: Date;
   excludeShiftId?: string;
+  companyId?: string;
 }) {
   if (!params.userId) return;
   const conflict = await prisma.shift.findFirst({
@@ -41,10 +49,17 @@ export async function assertNoUserOverlap(params: {
       start: { lt: params.stop },
       stop: { gt: params.start },
     },
-    select: { id: true },
+    select: {
+      team: { select: { companyId: true, company: { select: { name: true } } } },
+    },
   });
   if (conflict) {
-    throw new Error("This employee already has a shift during that time.");
+    throw new Error(
+      overlapShiftError(
+        conflict.team.company.name,
+        params.companyId != null && conflict.team.companyId === params.companyId,
+      ),
+    );
   }
 }
 

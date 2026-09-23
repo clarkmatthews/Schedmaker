@@ -119,23 +119,22 @@ function SummaryTile({
 export function LaborSummary({
   shifts,
   overtimeEnabled,
-  hourlyRates = {},
   timezone,
 }: {
   shifts: CalendarShift[];
   overtimeEnabled: boolean;
-  hourlyRates?: Record<string, number>;
   timezone: string;
 }) {
   const [dialog, setDialog] = useState<DialogKind | null>(null);
-  const hoursMs = shifts.reduce((sum, shift) => sum + onClockMs(shift), 0);
-  const otMs = shifts.reduce((sum, shift) => sum + (shift.otMs ?? 0), 0);
+  const countedShifts = shifts.filter((shift) => !shift.external);
+  const hoursMs = countedShifts.reduce((sum, shift) => sum + onClockMs(shift), 0);
+  const otMs = countedShifts.reduce((sum, shift) => sum + (shift.otMs ?? 0), 0);
   const flagged = useMemo(
-    () => shifts.filter((shift) => shift.warnings?.length),
-    [shifts],
+    () => countedShifts.filter((shift) => shift.warnings?.length),
+    [countedShifts],
   );
   const violations = flagged.reduce((sum, shift) => sum + shift.warnings.length, 0);
-  const laborUsd = estimatedLaborUsd(shifts, hourlyRates);
+  const laborUsd = estimatedLaborUsd(countedShifts);
 
   const violationRows = useMemo(() => {
     const items: ViolationRow[] = [];
@@ -166,7 +165,7 @@ export function LaborSummary({
       string,
       { employee: string; otMs: number; dates: Map<string, { label: string; sortAt: number }> }
     >();
-    for (const shift of shifts) {
+    for (const shift of countedShifts) {
       const shiftOt = shift.otMs ?? 0;
       if (shiftOt <= 0) continue;
       const key = shift.userId || "unassigned";
@@ -196,13 +195,13 @@ export function LaborSummary({
           .join(" · "),
       }))
       .sort((a, b) => b.otMs - a.otMs || a.employee.localeCompare(b.employee));
-  }, [shifts, timezone]);
+  }, [countedShifts, timezone]);
 
   const laborBars = useMemo(() => {
     const byJob = new Map<string, LaborBar>();
-    for (const shift of shifts) {
+    for (const shift of countedShifts) {
       if (!shift.userId) continue;
-      const rate = hourlyRates[shift.userId];
+      const rate = shift.payRate;
       if (!rate || !Number.isFinite(rate) || rate <= 0) continue;
       const amount =
         ((shift.regularMs ?? 0) / 3_600_000) * rate +
@@ -221,7 +220,7 @@ export function LaborSummary({
       byJob.set(key, current);
     }
     return [...byJob.values()].sort((a, b) => b.amount - a.amount || a.jobName.localeCompare(b.jobName));
-  }, [hourlyRates, shifts]);
+  }, [countedShifts]);
 
   const maxLabor = laborBars[0]?.amount ?? 0;
 
@@ -233,8 +232,9 @@ export function LaborSummary({
       </h2>
       <p className="mt-1 text-sm text-muted">
         Totals for the visible day or week, including overtime plus meal and
-        minor-rule warnings after save. Estimated labor uses each employee’s
-        hourly rate, with overtime at 1.5×. People without a rate are omitted.
+        minor-rule warnings after save. Estimated labor uses the job rate, or the
+        employee’s override when that is above $0.00. Overtime is 1.5×. Shifts
+        without a rate are omitted.
       </p>
       <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <SummaryTile label="Hours" value={formatHours(hoursMs)} />

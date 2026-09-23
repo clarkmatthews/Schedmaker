@@ -126,7 +126,13 @@ export default async function CompanySettingsPage({
                     name: team.name,
                     color: team.color,
                   }}
-                  jobs={team.jobs}
+                  jobs={team.jobs.map((job) => ({
+                    id: job.id,
+                    name: job.name,
+                    color: job.color,
+                    archived: job.archived,
+                    hourlyRate: job.hourlyRate == null ? null : Number(job.hourlyRate),
+                  }))}
                 />
               ))}
               <CreateTeamForm companyId={companyId} />

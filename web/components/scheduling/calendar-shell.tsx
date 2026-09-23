@@ -57,7 +57,6 @@ export function CalendarShell({
   hoursTemplate,
   overtimeEnabled = false,
   responsibilitiesEnabled = true,
-  hourlyRates = {},
   canEdit = false,
 }: {
   companyId: string;
@@ -75,7 +74,6 @@ export function CalendarShell({
   hoursTemplate: HoursTemplateView | null;
   overtimeEnabled?: boolean;
   responsibilitiesEnabled?: boolean;
-  hourlyRates?: Record<string, number>;
   canEdit?: boolean;
 }) {
   const router = useRouter();
@@ -92,7 +90,13 @@ export function CalendarShell({
 
   const rows = useMemo(() => {
     if (viewBy === "employee") {
-      const employeeRows = workers.map((w) => ({ id: w.id, label: w.name, color: "48B7AB" }));
+      const employeeRows = workers.map((w) => ({
+        id: w.id,
+        label: w.name,
+        color: "48B7AB",
+        loaned: w.loaned,
+        homeCompanyName: w.homeCompanyName,
+      }));
       if (!canEdit) return employeeRows;
       return [{ id: "", label: "Unassigned", color: "5B5B5B" }, ...employeeRows];
     }
@@ -108,6 +112,7 @@ export function CalendarShell({
       const sameDay =
         formatInTimeZone(start, timezone, "yyyy-MM-dd") ===
         formatInTimeZone(day, timezone, "yyyy-MM-dd");
+      if (shift.external && viewBy !== "employee") return false;
       const match =
         viewBy === "employee"
           ? (shift.userId ?? "") === rowId
@@ -121,13 +126,20 @@ export function CalendarShell({
   }
 
   function assignment(rowId: string) {
+    if (viewBy === "job") return { userId: "", jobId: rowId };
+    const worker = workers.find((item) => item.id === rowId);
     return {
-      userId: viewBy === "employee" ? rowId : "",
-      jobId: viewBy === "job" ? rowId : "",
+      userId: rowId,
+      jobId: worker?.primaryJobId ?? "",
     };
   }
 
   function openCreate(day: Date, rowId: string, startSlot = 36) {
+    if (viewBy === "employee" && rowId) {
+      const worker = workers.find((item) => item.id === rowId);
+      if (worker?.assignable === false) return;
+      if (!worker?.jobs?.length) return;
+    }
     const hours = hoursForDateKey(hoursTemplate, format(day, "yyyy-MM-dd"));
     const range = hours && !hours.closed ? visibleRange(hours) : null;
     const clamped = clampSlotsToWindow(startSlot, Math.min(startSlot + 32, 95), range);
@@ -144,6 +156,7 @@ export function CalendarShell({
   }
 
   function openEdit(shift: CalendarShift) {
+    if (shift.external) return;
     const start = parseISO(shift.start);
     const stop = parseISO(shift.stop);
     const stopSlot =
@@ -232,8 +245,17 @@ export function CalendarShell({
     const formData = new FormData();
     formData.set("start", nextStart.toISOString());
     formData.set("stop", nextStop.toISOString());
-    formData.set("userId", viewBy === "employee" ? rowId : shift.userId || "");
-    formData.set("jobId", viewBy === "job" ? rowId : shift.jobId || "");
+    const placedUserId = viewBy === "employee" ? rowId : shift.userId || "";
+    const placedWorker = workers.find((item) => item.id === placedUserId);
+    const placedJobId =
+      viewBy === "job"
+        ? rowId
+        : placedWorker?.jobs?.some((job) => job.id === shift.jobId)
+          ? shift.jobId || ""
+          : (placedWorker?.primaryJobId ?? "");
+    if (placedUserId && !placedJobId) return;
+    formData.set("userId", placedUserId);
+    formData.set("jobId", placedJobId);
     formData.set("copy", copy ? "true" : "false");
     const result = await placeShiftAction(companyId, teamId, shiftId, formData);
     if (result.error) {
@@ -413,7 +435,6 @@ export function CalendarShell({
         <LaborSummary
           shifts={shifts}
           overtimeEnabled={overtimeEnabled}
-          hourlyRates={hourlyRates}
           timezone={timezone}
         />
       ) : null}
@@ -443,7 +464,9 @@ export function CalendarShell({
         <ShiftModal
           draft={draft}
           weekDays={weekDays}
-          workers={workers}
+          workers={workers.filter(
+            (worker) => worker.assignable !== false || worker.id === draft.userId,
+          )}
           jobs={jobs}
           responsibilities={responsibilities}
           responsibilitiesEnabled={responsibilitiesEnabled}

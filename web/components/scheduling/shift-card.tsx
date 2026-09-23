@@ -3,6 +3,7 @@
 import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
+import { LoanedMark } from "@/components/scheduling/loaned-mark";
 import { SHIFT_DRAG_TYPE, type CalendarShift, type ViewBy } from "@/components/scheduling/types";
 import { beginShiftDrag, endShiftDrag } from "@/lib/scheduling/shift-drag";
 
@@ -45,21 +46,27 @@ export function ShiftCard({
   canEdit?: boolean;
   onOpen?: (shift: CalendarShift) => void;
 }) {
+  const startLabel = formatInTimeZone(parseISO(shift.start), timezone, "h:mm a");
+  const stopLabel = formatInTimeZone(parseISO(shift.stop), timezone, "h:mm a");
+  const external = Boolean(shift.external);
   return (
     <button
       type="button"
-      draggable={canEdit}
+      draggable={canEdit && !external}
       className={cn(
-        "relative block h-full w-full rounded px-2 text-left text-xs text-white",
+        "relative block h-full w-full rounded px-2 text-left text-xs",
+        external ? "cursor-default border border-neutral-300 bg-[#ededed] text-neutral-800" : "text-white",
         compact ? "py-0.5" : "py-1",
-        shift.published
-          ? "border border-transparent"
-          : "border border-dashed border-white/80 opacity-80",
-        !canEdit && "cursor-default",
+        !external &&
+          (shift.published
+            ? "border border-transparent"
+            : "border border-dashed border-white/80 opacity-80"),
+        !canEdit && !external && "cursor-default",
       )}
-      style={{ backgroundColor: `#${shift.jobColor ?? color}` }}
+      style={external ? undefined : { backgroundColor: `#${shift.jobColor ?? color}` }}
       onClick={(event) => {
         event.stopPropagation();
+        if (external) return;
         onOpen?.(shift);
       }}
       onDragOver={(event) => {
@@ -84,15 +91,28 @@ export function ShiftCard({
         window.setTimeout(endShiftDrag, 0);
       }}
     >
+      {external ? null : (
       <div className="pointer-events-none absolute inset-0 overflow-hidden rounded">
         <BreakOverlay shift={shift} />
       </div>
+      )}
       <div
         className={cn(
           "relative",
           compact && "flex h-full items-center justify-between gap-2",
         )}
       >
+        {external ? (
+          <>
+            <div className={cn("font-semibold", compact && "min-w-0 truncate")}>
+              {startLabel}–{stopLabel}
+            </div>
+            <div className={cn("truncate", compact && "text-right")}>
+              {shift.externalCompanyName}
+            </div>
+          </>
+        ) : (
+        <>
         <div className={cn("font-semibold", compact && "flex min-w-0 shrink-0 items-center gap-1")}>
           {shift.warnings?.length ? (
             <span
@@ -109,8 +129,7 @@ export function ShiftCard({
               </span>
             </span>
           ) : null}
-          {formatInTimeZone(parseISO(shift.start), timezone, "h:mm a")}–
-          {formatInTimeZone(parseISO(shift.stop), timezone, "h:mm a")}
+          {startLabel}–{stopLabel}
           {shift.published ? null : compact ? (
             <span className="ml-1 uppercase">Draft</span>
           ) : null}
@@ -121,11 +140,20 @@ export function ShiftCard({
           </div>
         ) : (
           <div>
-            {viewBy === "employee" ? shift.jobName || "No job" : shift.userName || "Unassigned"}
+            {viewBy === "employee" ? (
+              shift.jobName || "No job"
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                {shift.loaned ? <LoanedMark homeCompanyName={shift.homeCompanyName} /> : null}
+                {shift.userName || "Unassigned"}
+              </span>
+            )}
           </div>
         )}
         {shift.published || compact ? null : (
           <div className="font-semibold uppercase">Draft</div>
+        )}
+        </>
         )}
       </div>
     </button>

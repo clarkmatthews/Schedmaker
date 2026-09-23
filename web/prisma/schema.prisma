@@ -18,13 +18,17 @@ model User {
   support            Boolean  @default(false)
   birthDate          DateTime? @db.Date
   profileOwnerCompanyId String? @db.Uuid
+  homeCompanyId      String?  @db.Uuid
   memberSince        DateTime @default(now())
   icalToken          String   @unique @default(uuid())
   sessionVersion     Int      @default(0)
 
   emailTokens      EmailToken[]
   directoryEntries Directory[]
+  loans            EmployeeLoan[]
+  managedCompanies CompanyManager[]
   workerOf         Worker[]
+  jobs             EmployeeJob[]
   shifts           Shift[]
   coveringBreaks   BreakCoverage[]
 }
@@ -68,6 +72,8 @@ model Company {
 
   teams            Team[]
   directory        Directory[]
+  loans            EmployeeLoan[]
+  managers         CompanyManager[]
   roles            Role[]
   responsibilities Responsibility[]
   hoursTemplates   HoursTemplate[]  @relation("OwnedHours")
@@ -104,17 +110,30 @@ model Team {
 }
 
 model Job {
-  id       String  @id @default(uuid()) @db.Uuid
-  teamId   String  @db.Uuid
-  team     Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  name     String
-  archived Boolean @default(false)
-  color    String  @default("48B7AB")
+  id          String   @id @default(uuid()) @db.Uuid
+  teamId      String   @db.Uuid
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  name        String
+  archived    Boolean  @default(false)
+  color       String   @default("48B7AB")
+  hourlyRate  Decimal? @db.Decimal(8, 2)
 
-  shifts          Shift[]
+  shifts           Shift[]
   responsibilities JobResponsibility[]
+  employees        EmployeeJob[]
 
   @@index([teamId])
+}
+
+model EmployeeJob {
+  userId  String  @db.Uuid
+  jobId   String  @db.Uuid
+  primary Boolean @default(false)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+  @@index([jobId])
 }
 
 model Shift {
@@ -209,6 +228,27 @@ model Role {
 
   @@unique([companyId, name])
   @@unique([companyId, systemKey])
+  @@index([companyId])
+}
+
+model CompanyManager {
+  userId    String  @db.Uuid
+  companyId String  @db.Uuid
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, companyId])
+  @@index([companyId])
+}
+
+model EmployeeLoan {
+  userId    String  @db.Uuid
+  companyId String  @db.Uuid
+  active    Boolean @default(true)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, companyId])
   @@index([companyId])
 }
 

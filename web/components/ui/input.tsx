@@ -29,10 +29,12 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
 
 export function Select({
   className,
+  ref,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement>) {
+}: SelectHTMLAttributes<HTMLSelectElement> & { ref?: React.Ref<HTMLSelectElement> }) {
   return (
     <select
+      ref={ref}
       className={cn(
         "w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-teal",
         className,

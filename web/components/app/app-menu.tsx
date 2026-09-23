@@ -77,6 +77,15 @@ function CompanyNav({
           Company settings
         </Link>
       ) : null}
+      {company.capabilities.loans ? (
+        <Link
+          href={`/app/companies/${company.id}/loans`}
+          className={linkClass(pad)}
+          onClick={onNavigate}
+        >
+          Employee loans
+        </Link>
+      ) : null}
     </>
   );
 }
@@ -102,6 +111,7 @@ export function AppMenu({
           employees: false,
           schedule: false,
           settings: false,
+          loans: false,
           switchCompany: false,
         },
         teams,

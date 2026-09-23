@@ -129,6 +129,8 @@ export function ShiftModal({
   const visibleResponsibilities = responsibilities.filter(
     (duty) => !duty.archived || draft.responsibilityIds.includes(duty.id),
   );
+  const selectedWorker = workers.find((worker) => worker.id === draft.userId);
+  const jobChoices = selectedWorker ? (selectedWorker.jobs ?? []) : jobs;
 
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
@@ -204,7 +206,15 @@ export function ShiftModal({
             <Select
               id="userId"
               value={draft.userId}
-              onChange={(e) => onChange({ ...draft, userId: e.target.value })}
+              onChange={(e) => {
+                const userId = e.target.value;
+                const worker = workers.find((item) => item.id === userId);
+                const choices = worker ? (worker.jobs ?? []) : jobs;
+                const jobId = choices.some((job) => job.id === draft.jobId)
+                  ? draft.jobId
+                  : (worker?.primaryJobId ?? "");
+                onChange({ ...draft, userId, jobId });
+              }}
             >
               <option value="">Unassigned</option>
               {workers.map((worker) => (
@@ -221,8 +231,8 @@ export function ShiftModal({
               value={draft.jobId}
               onChange={(e) => onChange({ ...draft, jobId: e.target.value })}
             >
-              <option value="">No job</option>
-              {jobs.map((job) => (
+              {draft.userId ? null : <option value="">No job</option>}
+              {jobChoices.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.name}
                 </option>

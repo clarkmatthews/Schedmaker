@@ -10,6 +10,7 @@ import {
   notifyShiftUpdated,
   validateShiftTimes,
   assertNoUserOverlap,
+  overlapShiftError,
 } from "@/lib/shifts";
 import { notifyNewShifts, notifyRemovedShifts } from "@/lib/notifications";
 import { notifyPublishedSchedule } from "@/lib/notifications/schedule-mms";
@@ -22,7 +23,12 @@ import {
   snapToSlot,
 } from "@/lib/scheduling/time-grid";
 import { assertBreaksDoNotOverlap } from "@/lib/scheduling/break-rules";
-import { assertScheduleDayEditable } from "@/lib/scheduling/schedule-lock";
+import {
+  assertScheduleDayEditable,
+  getScheduleLock,
+  isLockedScheduleDay,
+  shiftDayKey,
+} from "@/lib/scheduling/schedule-lock";
 import { assertShiftWithinHours, toHoursTemplateView } from "@/lib/scheduling/hours";
 
 function emptyId(value: FormDataEntryValue | null) {
@@ -194,23 +200,102 @@ function offsetBreaks<T extends { start: Date; stop: Date }>(
   return next;
 }
 
+async function assertAssignableUser(companyId: string, userId: string) {
+  const directory = await prisma.directory.findUnique({
+    where: { companyId_userId: { companyId, userId } },
+  });
+  if (directory) {
+    if (directory.deactivated) throw new Error("This employee is deactivated.");
+    return;
+  }
+  const [loan, user] = await Promise.all([
+    prisma.employeeLoan.findUnique({
+      where: { userId_companyId: { userId, companyId } },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { homeCompanyId: true },
+    }),
+  ]);
+  if (!loan?.active) throw new Error("Worker is not in this company.");
+  if (user?.homeCompanyId) {
+    const home = await prisma.directory.findUnique({
+      where: { companyId_userId: { companyId: user.homeCompanyId, userId } },
+      select: { deactivated: true },
+    });
+    if (home?.deactivated) throw new Error("This employee is deactivated.");
+  }
+}
+
+async function assertEmployeeJob(
+  companyId: string,
+  teamId: string,
+  jobId: string | null,
+  userId: string,
+) {
+  const [assignments, directory] = await Promise.all([
+    prisma.employeeJob.findMany({
+      where: { userId, job: { archived: false } },
+      select: { jobId: true, job: { select: { teamId: true } } },
+    }),
+    prisma.directory.findUnique({
+      where: { companyId_userId: { companyId, userId } },
+      select: { userId: true },
+    }),
+  ]);
+  const allowed = directory
+    ? assignments.filter((assignment) => assignment.job.teamId === teamId)
+    : assignments;
+  if (allowed.length === 0) {
+    throw new Error("Assign this employee a job before scheduling them.");
+  }
+  if (!jobId) throw new Error("Choose a job for this employee.");
+  if (!allowed.some((assignment) => assignment.jobId === jobId)) {
+    throw new Error("That job is not assigned to this employee.");
+  }
+}
+
 async function assertJobAndUser(
   companyId: string,
   teamId: string,
   jobId: string | null,
   userId: string | null,
+  keepUserId?: string | null,
 ) {
-  if (jobId) {
-    const job = await prisma.job.findFirst({ where: { id: jobId, teamId } });
-    if (!job) throw new Error("Invalid job.");
+  if (!userId) {
+    if (jobId) {
+      const job = await prisma.job.findFirst({
+        where: { id: jobId, teamId, archived: false },
+        select: { id: true },
+      });
+      if (!job) throw new Error("Invalid job.");
+    }
+    return;
   }
-  if (userId) {
+  if (keepUserId && userId === keepUserId) {
     const directory = await prisma.directory.findUnique({
       where: { companyId_userId: { companyId, userId } },
+      select: { deactivated: true },
     });
-    if (!directory) throw new Error("Worker is not in this company.");
-    if (directory.deactivated) throw new Error("This employee is deactivated.");
+    if (directory?.deactivated) throw new Error("This employee is deactivated.");
+    if (!directory) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { homeCompanyId: true },
+      });
+      if (user?.homeCompanyId) {
+        const home = await prisma.directory.findUnique({
+          where: { companyId_userId: { companyId: user.homeCompanyId, userId } },
+          select: { deactivated: true },
+        });
+        if (home?.deactivated) throw new Error("This employee is deactivated.");
+      }
+    }
+    await assertEmployeeJob(companyId, teamId, jobId, userId);
+    return;
   }
+  await assertAssignableUser(companyId, userId);
+  await assertEmployeeJob(companyId, teamId, jobId, userId);
 }
 
 function revalidateScheduling(companyId: string, teamId: string) {
@@ -267,7 +352,7 @@ export async function createShiftsAction(
         const { start, stop } = datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot);
         validateShiftTimes(start, stop);
         assertShiftWithinHours(template, start, stop, timezone);
-        await assertNoUserOverlap({ userId, start, stop });
+        await assertNoUserOverlap({ userId, start, stop, companyId });
         const breaks = normalizeBreaks(start, stop, breakInputs);
         const shift = await tx.shift.create({
           data: {
@@ -321,8 +406,8 @@ export async function updateShiftAction(
     validateShiftTimes(start, stop);
     const { timezone, template } = await loadHoursContext(companyId, teamId);
     assertShiftWithinHours(template, start, stop, timezone);
-    await assertJobAndUser(companyId, teamId, jobId, userId);
-    await assertNoUserOverlap({ userId, start, stop, excludeShiftId: shiftId });
+    await assertJobAndUser(companyId, teamId, jobId, userId, orig.userId);
+    await assertNoUserOverlap({ userId, start, stop, excludeShiftId: shiftId, companyId });
     await assertScheduleDayEditable(companyId, teamId, [orig.start, start]);
 
     const hasBreaksField = formData.has("breaks");
@@ -385,12 +470,13 @@ export async function placeShiftAction(
     validateShiftTimes(start, stop);
     const { timezone, template } = await loadHoursContext(companyId, teamId);
     assertShiftWithinHours(template, start, stop, timezone);
-    await assertJobAndUser(companyId, teamId, jobId, userId);
+    await assertJobAndUser(companyId, teamId, jobId, userId, copy ? null : orig.userId);
     await assertNoUserOverlap({
       userId,
       start,
       stop,
       excludeShiftId: copy ? undefined : shiftId,
+      companyId,
     });
     await assertScheduleDayEditable(
       companyId,
@@ -483,7 +569,7 @@ export async function copyShiftAction(
         const { start, stop } = datesFromSlots(new Date(`${day}T00:00:00`), startSlot, stopSlot);
         validateShiftTimes(start, stop);
         assertShiftWithinHours(template, start, stop, timezone);
-        await assertNoUserOverlap({ userId: orig.userId, start, stop });
+        await assertNoUserOverlap({ userId: orig.userId, start, stop, companyId });
         const breaks = normalizeBreaks(start, stop, relativeBreaks);
         shifts.push(
           await tx.shift.create({
@@ -580,7 +666,52 @@ export async function copyLastPeriodAction(
         .filter((row) => !row.user.directoryEntries.some((entry) => entry.deactivated))
         .map((row) => row.userId),
     );
+    const loans = await prisma.employeeLoan.findMany({
+      where: { companyId, active: true },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            homeCompanyId: true,
+            directoryEntries: { select: { companyId: true, deactivated: true } },
+          },
+        },
+      },
+    });
+    for (const loan of loans) {
+      const home = loan.user.directoryEntries.find(
+        (entry) => entry.companyId === loan.user.homeCompanyId,
+      );
+      if (!home?.deactivated) activeUserIds.add(loan.userId);
+    }
     const validJobIds = new Set(jobs.map((job) => job.id));
+    const loanedIds = new Set(loans.map((loan) => loan.userId));
+    const assignmentRows = activeUserIds.size
+      ? await prisma.employeeJob.findMany({
+          where: { userId: { in: [...activeUserIds] }, job: { archived: false } },
+          select: {
+            userId: true,
+            jobId: true,
+            primary: true,
+            job: { select: { teamId: true } },
+          },
+        })
+      : [];
+    const jobsByUser = new Map<string, { jobId: string; primary: boolean; teamId: string }[]>();
+    for (const row of assignmentRows) {
+      const list = jobsByUser.get(row.userId) ?? [];
+      list.push({ jobId: row.jobId, primary: row.primary, teamId: row.job.teamId });
+      jobsByUser.set(row.userId, list);
+    }
+    const copiedJobId = (userId: string | null, jobId: string | null) => {
+      if (!userId) return jobId && validJobIds.has(jobId) ? jobId : null;
+      const assigned = jobsByUser.get(userId) ?? [];
+      const allowed = loanedIds.has(userId)
+        ? assigned
+        : assigned.filter((job) => job.teamId === teamId);
+      if (jobId && allowed.some((job) => job.jobId === jobId)) return jobId;
+      return allowed.find((job) => job.primary)?.jobId ?? null;
+    };
 
     const copies = sourceShifts
       .filter((shift) => !shift.userId || activeUserIds.has(shift.userId))
@@ -588,9 +719,10 @@ export async function copyLastPeriodAction(
         const start = new Date(shift.start.getTime() + offsetMs);
         const stop = new Date(shift.stop.getTime() + offsetMs);
         const responsibilityIds = shift.responsibilities.map((row) => row.responsibilityId);
+        const jobId = copiedJobId(shift.userId, shift.jobId);
         return {
-          userId: shift.userId,
-          jobId: shift.jobId && validJobIds.has(shift.jobId) ? shift.jobId : null,
+          userId: shift.userId && jobId ? shift.userId : null,
+          jobId,
           published: shift.published,
           start,
           stop,
@@ -622,10 +754,17 @@ export async function copyLastPeriodAction(
               start: { lt: copy.stop },
               stop: { gt: copy.start },
             },
-            select: { id: true },
+            select: {
+              team: { select: { companyId: true, company: { select: { name: true } } } },
+            },
           });
           if (conflict) {
-            throw new Error("This employee already has a shift during that time.");
+            throw new Error(
+              overlapShiftError(
+                conflict.team.company.name,
+                conflict.team.companyId === companyId,
+              ),
+            );
           }
         }
         await tx.shift.create({
@@ -719,15 +858,34 @@ export async function bulkPublishShiftsAction(
     const shifts = await prisma.shift.findMany({
       where: { teamId, start: { gte: start, lt: end } },
     });
-    await assertScheduleDayEditable(
-      companyId,
-      teamId,
-      shifts.map((shift) => shift.start),
-    );
+
+    let targets = shifts;
+    if (published) {
+      const lock = await getScheduleLock(companyId);
+      const draftsOnLockedDays: string[] = [];
+      targets = [];
+      for (const shift of shifts) {
+        const day = shiftDayKey(shift.start, lock.timezone);
+        if (isLockedScheduleDay(day, lock.today, lock.locked)) {
+          if (!shift.published) draftsOnLockedDays.push(shift.id);
+          continue;
+        }
+        targets.push(shift);
+      }
+      if (draftsOnLockedDays.length) {
+        await prisma.shift.deleteMany({ where: { id: { in: draftsOnLockedDays } } });
+      }
+    } else {
+      await assertScheduleDayEditable(
+        companyId,
+        teamId,
+        shifts.map((shift) => shift.start),
+      );
+    }
 
     const now = new Date();
     const notifs = new Map<string, typeof shifts>();
-    for (const shift of shifts) {
+    for (const shift of targets) {
       if (shift.userId && shift.published !== published && shift.start > now) {
         const list = notifs.get(shift.userId) ?? [];
         list.push(shift);
@@ -735,10 +893,13 @@ export async function bulkPublishShiftsAction(
       }
     }
 
-    await prisma.shift.updateMany({
-      where: { teamId, start: { gte: start, lt: end } },
-      data: { published },
-    });
+    const targetIds = targets.filter((shift) => shift.published !== published).map((shift) => shift.id);
+    if (targetIds.length) {
+      await prisma.shift.updateMany({
+        where: { id: { in: targetIds } },
+        data: { published },
+      });
+    }
 
     for (const [userId, userShifts] of notifs) {
       if (published) {

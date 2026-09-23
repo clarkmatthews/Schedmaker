@@ -20,6 +20,13 @@ export type EmployeeRecord = {
   teamIds: string[];
   canEditIdentity: boolean;
   canEditBirthDate: boolean;
+  homeCompanyId: string | null;
+  homeCompanyName: string | null;
+  memberCompanyIds: string[];
+  loaned: boolean;
+  loans: { companyId: string; companyName: string }[];
+  manages: { companyId: string; companyName: string }[];
+  jobs: { jobId: string; jobName: string; teamName: string; primary: boolean; hourlyRate: number | null }[];
 };
 
 export function parseBirthDate(value: string): Date | null {
@@ -59,6 +66,12 @@ export function parseHourlyRate(value: string): { rate: number | null; error?: s
   return { rate: Math.round(n * 100) / 100 };
 }
 
+export function hourlyRateNumber(rate: unknown): number | null {
+  if (rate == null || rate === "") return null;
+  const n = Number(rate);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function mapDirectoryEmployee(
   entry: {
     userId: string;
@@ -75,12 +88,17 @@ export function mapDirectoryEmployee(
       confirmedAndActive: boolean;
       birthDate: Date | null;
       profileOwnerCompanyId: string | null;
+      homeCompanyId: string | null;
       directoryEntries: { companyId: string }[];
       workerOf: { teamId: string }[];
     };
   },
   teamIds: string[],
   companyId: string,
+  homeCompanyName: string | null,
+  loans: { companyId: string; companyName: string }[],
+  manages: { companyId: string; companyName: string }[],
+  jobs: { jobId: string; jobName: string; teamName: string; primary: boolean; hourlyRate: number | null }[],
 ): EmployeeRecord {
   const ownsProfile = entry.user.profileOwnerCompanyId === companyId;
   const sharedAccount = entry.user.directoryEntries.some((row) => row.companyId !== companyId);
@@ -94,11 +112,7 @@ export function mapDirectoryEmployee(
     deactivated: entry.deactivated,
     mealBreakWaiver: entry.mealBreakWaiver,
     birthDate: entry.user.birthDate ? entry.user.birthDate.toISOString().slice(0, 10) : null,
-    hourlyRate: (() => {
-      if (entry.hourlyRate == null || entry.hourlyRate === "") return null;
-      const n = Number(entry.hourlyRate);
-      return Number.isFinite(n) ? n : null;
-    })(),
+    hourlyRate: hourlyRateNumber(entry.hourlyRate),
     roleId: entry.roleId,
     roleName: entry.role.name,
     teamIds: entry.user.workerOf
@@ -106,5 +120,12 @@ export function mapDirectoryEmployee(
       .map((worker) => worker.teamId),
     canEditIdentity: ownsProfile && !entry.user.confirmedAndActive,
     canEditBirthDate: ownsProfile || !sharedAccount,
+    homeCompanyId: entry.user.homeCompanyId,
+    memberCompanyIds: entry.user.directoryEntries.map((row) => row.companyId),
+    homeCompanyName,
+    loaned: false,
+    loans,
+    manages,
+    jobs,
   };
 }

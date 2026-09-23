@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
+import { parseHourlyRate } from "@/lib/employees";
 import { ActionError, assertTeamInCompany, requirePermission } from "@/lib/permissions";
 
 export async function createTeamAction(companyId: string, formData: FormData) {
@@ -69,9 +70,13 @@ export async function createJobAction(
     await assertTeamInCompany(companyId, teamId);
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
+    const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
     if (!name) return { error: "Job name is required." };
+    if (parsedRate.error) return { error: parsedRate.error };
 
-    await prisma.job.create({ data: { teamId, name, color } });
+    await prisma.job.create({
+      data: { teamId, name, color, hourlyRate: parsedRate.rate },
+    });
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/settings`);
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling`);
     revalidatePath(`/app/companies/${companyId}/settings`);
@@ -94,14 +99,16 @@ export async function updateJobAction(
     const name = String(formData.get("name") ?? "").trim();
     const color = String(formData.get("color") ?? "48B7AB").replace("#", "");
     const archived = String(formData.get("archived") ?? "") === "true";
+    const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
     if (!name) return { error: "Job name is required." };
+    if (parsedRate.error) return { error: parsedRate.error };
 
     const job = await prisma.job.findFirst({ where: { id: jobId, teamId } });
     if (!job) return { error: "Job not found." };
 
     await prisma.job.update({
       where: { id: jobId },
-      data: { name, color, archived },
+      data: { name, color, archived, hourlyRate: parsedRate.rate },
     });
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/settings`);
     revalidatePath(`/app/companies/${companyId}/teams/${teamId}/scheduling`);
