@@ -19,7 +19,7 @@ Managers work from a team calendar with **Week** and **Day** views. Navigate wit
 
 ### Hours, overtime, and labor overview (overtime rules by state California default)
 
-The calendar is built for labor cost, not just coverage.
+The calendar is built for estimated labor cost, hours, and coverage.
 
 - Sticky **Hours/OT** totals per person (or job) and per day.
 - Day view adds a per-hour footer so you can see who is on the floor at 2:00 PM.
