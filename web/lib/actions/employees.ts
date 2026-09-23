@@ -117,8 +117,8 @@ export async function createEmployeeAction(companyId: string, formData: FormData
     const internalId = String(formData.get("internalId") ?? "").trim();
     const teamId = String(formData.get("teamId") ?? "").trim();
     const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
-    const birthDate = birthDateRaw ? parseBirthDate(birthDateRaw) : null;
-    if (birthDateRaw && !birthDate) return { error: "Enter a valid date of birth." };
+    const birthDate = parseBirthDate(birthDateRaw);
+    if (!birthDate) return { error: "Date of birth is required." };
     const mealBreakWaiver = String(formData.get("mealBreakWaiver") ?? "") === "on";
     const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
     if (parsedRate.error) return { error: parsedRate.error };
@@ -156,7 +156,7 @@ export async function createEmployeeAction(companyId: string, formData: FormData
         data: { homeCompanyId: companyId },
       });
     }
-    if (birthDate && (created || !(await belongsToAnotherCompany(user.id, companyId)))) {
+    if (created || !(await belongsToAnotherCompany(user.id, companyId))) {
       await prisma.user.update({
         where: { id: user.id },
         data: { birthDate },
@@ -249,7 +249,9 @@ export async function updateEmployeeAction(
     const internalId = String(formData.get("internalId") ?? "").trim();
     const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
     const birthDate = birthDateRaw ? parseBirthDate(birthDateRaw) : null;
-    if (birthDateRaw && !birthDate) return { error: "Enter a valid date of birth." };
+    if (formData.has("birthDate") && !birthDate) {
+      return { error: "Date of birth is required." };
+    }
     const parsedRate = parseHourlyRate(String(formData.get("hourlyRate") ?? ""));
     if (parsedRate.error) return { error: parsedRate.error };
 
@@ -265,7 +267,7 @@ export async function updateEmployeeAction(
       email?: string;
       phoneNumber?: string | null;
     } = {};
-    if (formData.has("birthDate")) {
+    if (formData.has("birthDate") && birthDate) {
       const shared = !ownsProfile && (await belongsToAnotherCompany(userId, companyId));
       if (shared) {
         return {

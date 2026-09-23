@@ -577,7 +577,7 @@ export function EmployeeManager({
             <PayRateFields primaryRate={primaryJobRate(createJobs, jobs)} />
             <div>
               <Label htmlFor="birthDate">Date of birth</Label>
-              <Input id="birthDate" name="birthDate" type="date" />
+              <Input id="birthDate" name="birthDate" type="date" required />
             </div>
             <div className="flex items-start gap-2 text-sm">
               <label className="flex items-start gap-2">
@@ -731,6 +731,7 @@ export function EmployeeManager({
                 name="birthDate"
                 type="date"
                 defaultValue={selected.birthDate ?? ""}
+                required={canEditSelected && selected.canEditBirthDate}
                 disabled={!canEditSelected || !selected.canEditBirthDate}
               />
               {canEditSelected && !selected.canEditBirthDate ? (
