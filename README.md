@@ -26,6 +26,8 @@ The calendar is built for labor cost, not just coverage.
 - On-clock time subtracts scheduled breaks.
 - The **Schedule overview** panel sums hours, overtime, meal violations, and flagged shifts for the visible range.
 - Overtime uses the location’s rules: daily after 8, double after 12, weekly after 40, and optional seventh-day overtime (California defaults). Weekly OT is computed from the full workweek even when you are looking at a single day.
+- Estimated labor uses one rate per shift. An **Override Hourly Rate** above $0.00 replaces the job rate. Otherwise the shift uses that job’s **default hourly rate** when it is above $0.00. A blank or $0.00 override means “use the job rate.” Shifts with neither rate add hours but no dollars. Overtime is 1.5× whichever rate applies.
+- Hours worked at another restaurant count toward daily and weekly overtime on the schedule you are looking at. Those other-restaurant shifts stay out of this store’s labor dollars.
 
 ### Meal-break warnings - California break support and multi state support
 
@@ -48,6 +50,31 @@ Click a shift or an empty cell to create or edit.
 - Copy a shift to another day.
 - A person cannot be booked on two overlapping shifts.
 - Optional **historical lock**: when enabled, today and earlier dates cannot be created, moved, copied, deleted, or published.
+
+### Jobs and pay
+
+Each job on a team can have a **default hourly rate**. On the employee, **Override Hourly Rate** is optional and wins only when it is above $0.00.
+
+- The home store assigns jobs from that company’s list. One job is **primary**. Saving jobs with none marked primary is rejected.
+- A new shift defaults to the primary job. The job list is only jobs assigned to that person. Someone with no assigned job does not appear on the week or day schedule and cannot be placed on a shift.
+- An open shift can still have no job. Copy week keeps the job when the person is still assigned to it, otherwise it uses their primary job.
+
+### Loaning employees
+
+Every person has one **home store**. The home store can loan them to other companies with **Loaned to**. A loan puts them on that store’s schedule without adding a directory role there.
+
+- At the loaned store their name has a black circle with a white **L**. Hover shows “Loaned from {home store}.”
+- Their job list is the jobs assigned at the home store, including the primary job. Pay uses the home store’s override rate.
+- Shifts they work at another restaurant show on this calendar in light grey, with the time and the other company’s name. Those cards are view-only: they are not opened, dragged, edited, or copied.
+- Meal, minor, and overtime rules are the rules of the restaurant on the screen. The person’s meal-break waiver and birth date still come from the home store. Grey shifts are included when calculating overtime and minor limits for the week, and the on-screen restaurant’s own shifts pick up the overtime share. Meal warnings stay on each local shift.
+
+### Employee loan management
+
+**Employee loans** sits in the menu between Company settings and My account. It is available to Administrators and to anyone whose role can edit Company settings.
+
+- The list is everyone currently loaned out from a store you can administer: name, home store, and each destination.
+- **Change** replaces that person’s full set of loans. **Remove** ends one destination. When the last destination is removed, they leave the list.
+- Only the home store can change loans. A loan cannot point at the home store, and a store where the person already has a directory entry is not a loan.
 
 ### Hours templates
 
@@ -75,9 +102,9 @@ Settings:
 | Company | Name, default timezone, week-start day |
 | Hours | Templates and the location’s assigned window |
 | Scheduling | Historical lock, US state, meal rules, overtime rules |
-| Teams | Team identity, jobs, and colors |
+| Teams | Team identity, jobs, colors, and each job’s default hourly rate |
 | Responsibilities | Shared duties |
-| People | Directory and admin access |
+| People | Directory, home store, jobs, override hourly rate, loans, and who manages other stores |
 | Account | Name, email, phone, password, and a personal **iCal** feed |
 | Roles | Role based permissions for all the features of the schedule app |
 
@@ -143,6 +170,8 @@ A 15-minute timeline with grey hours-template bands, compact shift bars, and per
 ![Rule violations](docs/screenshots/rule-violations.png)
 
 ### Estimated labor breakdown by job $
+
+Dollars use the job’s default hourly rate, or the employee’s override when that override is above $0.00.
 
 ![Estimated labor](docs/screenshots/estimated-labor.png)
 
