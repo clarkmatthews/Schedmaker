@@ -11,6 +11,7 @@ import {
   setEmployeeRoleAction,
   setEmployeeTeamAction,
   setEmployeeJobsAction,
+  resetEmployeePasswordAction,
   setHomeCompanyAction,
   setManagedCompaniesAction,
   updateEmployeeAction,
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 export function CompanyChecklist({
   label,
@@ -321,6 +323,65 @@ function HourlyRateField({
   );
 }
 
+function ResetPasswordPanel({
+  companyId,
+  userId,
+}: {
+  companyId: string;
+  userId: string;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  return (
+    <form
+      className="space-y-2 rounded-md border border-border p-3"
+      onSubmit={async (event) => {
+        event.preventDefault();
+        setPending(true);
+        setDone(false);
+        const result = await resetEmployeePasswordAction(companyId, userId, password);
+        setPending(false);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        setError(null);
+        setPassword("");
+        setDone(true);
+      }}
+    >
+      <p className="text-sm font-medium">Reset password</p>
+      <p className="text-sm text-muted">
+        Set a temporary password. The next time they sign in, they must choose a new one.
+      </p>
+      <div>
+        <Label htmlFor={`reset-password-${userId}`}>Temporary password</Label>
+        <Input
+          id={`reset-password-${userId}`}
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+      </div>
+      <FieldError message={error} />
+      {done ? (
+        <p className="text-sm text-ink">
+          Password reset. They must choose a new password the next time they sign in.
+        </p>
+      ) : null}
+      <Button type="submit" variant="outline" disabled={pending}>
+        {pending ? "Resetting…" : "Reset password"}
+      </Button>
+    </form>
+  );
+}
+
 export function EmployeeManager({
   companyId,
   employees,
@@ -331,6 +392,7 @@ export function EmployeeManager({
   currentUserId,
   canEdit,
   canAssignAdministrator,
+  canResetPasswords,
   companies,
   jobs,
 }: {
@@ -343,6 +405,7 @@ export function EmployeeManager({
   currentUserId: string;
   canEdit: boolean;
   canAssignAdministrator: boolean;
+  canResetPasswords: boolean;
   companies: { id: string; name: string }[];
   jobs: { id: string; name: string; teamName: string; hourlyRate: number | null }[];
 }) {
@@ -505,7 +568,7 @@ export function EmployeeManager({
             </div>
             <div>
               <Label htmlFor="phoneNumber">Phone</Label>
-              <Input id="phoneNumber" name="phoneNumber" />
+              <PhoneInput id="phoneNumber" name="phoneNumber" />
             </div>
             <div>
               <Label htmlFor="internalId">Internal ID</Label>
@@ -644,9 +707,10 @@ export function EmployeeManager({
             </div>
             <div>
               <Label htmlFor="phoneNumber">Phone</Label>
-              <Input
+              <PhoneInput
                 id="phoneNumber"
                 name="phoneNumber"
+                key={selected.userId}
                 defaultValue={selected.phoneNumber ?? ""}
                 disabled={!canEditSelected || !selected.canEditIdentity}
               />
@@ -899,6 +963,9 @@ export function EmployeeManager({
                 </p>
               </div>
             )}
+            {canResetPasswords ? (
+              <ResetPasswordPanel companyId={companyId} userId={selected.userId} />
+            ) : null}
             <FieldError message={error} />
             <div className="flex flex-wrap gap-2">
               {canEditSelected ? (

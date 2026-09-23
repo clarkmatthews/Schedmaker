@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateMmsSettingsAction } from "@/lib/actions/company";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 type SavedMms = {
   on: boolean;
@@ -104,22 +105,20 @@ export function MmsSettings({
       </div>
       <div>
         <Label htmlFor="mmsFromNumber">Twilio MMS From number</Label>
-        <Input
+        <PhoneInput
           id="mmsFromNumber"
           name="mmsFromNumber"
           value={from}
-          placeholder="+15551234567"
-          onChange={(event) => setFrom(event.target.value)}
+          onValueChange={setFrom}
         />
       </div>
       <div>
         <Label htmlFor="mmsManagerPhone">Manager on duty phone</Label>
-        <Input
+        <PhoneInput
           id="mmsManagerPhone"
           name="mmsManagerPhone"
           value={manager}
-          placeholder="+15557654321"
-          onChange={(event) => setManager(event.target.value)}
+          onValueChange={setManager}
         />
         <p className="mt-1 text-xs text-muted">
           Included in the message so employees know who to call with questions.

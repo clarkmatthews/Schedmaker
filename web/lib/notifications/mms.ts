@@ -1,3 +1,5 @@
+import { phoneToE164 } from "@/lib/phone";
+
 export type MmsConfig = {
   accountSid: string;
   authToken: string;
@@ -27,8 +29,8 @@ export async function sendMms(params: {
   mediaUrl: string;
 }) {
   const form = new URLSearchParams();
-  form.set("To", params.to);
-  form.set("From", params.config.fromNumber);
+  form.set("To", phoneToE164(params.to) ?? params.to);
+  form.set("From", phoneToE164(params.config.fromNumber) ?? params.config.fromNumber);
   form.set("Body", params.body);
   form.set("MediaUrl", params.mediaUrl);
 

@@ -1,3 +1,5 @@
+import { phoneToE164 } from "@/lib/phone";
+
 export async function sendSms(params: { to: string; body: string }) {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
@@ -9,7 +11,7 @@ export async function sendSms(params: { to: string; body: string }) {
   }
 
   const body = new URLSearchParams();
-  body.set("To", params.to);
+  body.set("To", phoneToE164(params.to) ?? params.to);
   body.set("From", from);
   body.set("Body", params.body);
 

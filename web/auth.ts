@@ -40,6 +40,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
             support: user.support,
             sessionVersion: Number(user.sessionVersion ?? 0),
+            mustChangePassword: user.mustChangePassword,
           };
         } catch (error) {
           console.error("[auth] authorize failed", error);
@@ -54,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id!;
         token.support = Boolean(user.support);
         token.sessionVersion = Number(user.sessionVersion ?? 0);
+        token.mustChangePassword = Boolean(user.mustChangePassword);
         token.name = user.name;
         token.email = user.email;
         return token;
@@ -69,6 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             support: true,
             confirmedAndActive: true,
             sessionVersion: true,
+            mustChangePassword: true,
             name: true,
             email: true,
           },
@@ -80,6 +83,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
         token.support = dbUser.support;
+        token.mustChangePassword = dbUser.mustChangePassword;
         token.name = dbUser.name;
         token.email = dbUser.email;
         return token;
@@ -91,10 +95,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!token?.id) {
         session.user.id = "";
         session.user.support = false;
+        session.user.mustChangePassword = false;
         return session;
       }
       session.user.id = String(token.id);
       session.user.support = Boolean(token.support);
+      session.user.mustChangePassword = Boolean(token.mustChangePassword);
       session.user.name = typeof token.name === "string" ? token.name : "";
       session.user.email = typeof token.email === "string" ? token.email : "";
       return session;

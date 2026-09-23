@@ -1,4 +1,18 @@
+import os from "os";
 import type { NextConfig } from "next";
+
+function lanDevOrigins() {
+  const origins = new Set<string>();
+  const hostname = os.hostname().trim().toLowerCase();
+  if (hostname) origins.add(hostname);
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      if (entry.internal || entry.family !== "IPv4") continue;
+      origins.add(entry.address);
+    }
+  }
+  return [...origins];
+}
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -32,6 +46,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: lanDevOrigins(),
   async headers() {
     return [
       {

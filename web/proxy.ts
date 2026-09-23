@@ -12,6 +12,13 @@ export const proxy = auth((req) => {
     login.searchParams.set("callbackUrl", pathname);
     return Response.redirect(login);
   }
+
+  if (
+    req.auth?.user?.mustChangePassword &&
+    pathname !== "/account/password"
+  ) {
+    return Response.redirect(new URL("/account/password", req.nextUrl));
+  }
 });
 
 export const config = {

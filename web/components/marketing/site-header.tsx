@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { LogoutButton } from "@/components/app/logout-button";
+import { signupEnabled } from "@/lib/signup";
 
 export async function AuthHeader() {
   const session = await auth();
@@ -18,14 +19,14 @@ export async function AuthHeader() {
               </Link>
               <LogoutButton className="hover:text-teal" />
             </>
-          ) : (
+          ) : signupEnabled() ? (
             <Link
               href="/signup"
               className="rounded-md bg-teal px-3 py-1.5 text-white hover:bg-teal-dark"
             >
               Sign up
             </Link>
-          )}
+          ) : null}
         </nav>
       </div>
     </header>

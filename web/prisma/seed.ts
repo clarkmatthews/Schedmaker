@@ -52,25 +52,25 @@ async function main() {
     email: "manager@schedmaker.local",
     name: "Maya Manager",
     password: "scheduler123",
-    phoneNumber: "+15555550100",
+    phoneNumber: "(555) 555-0100",
   });
   const alice = await upsertUser({
     email: "alice@schedmaker.local",
     name: "Alice Nguyen",
     password: "scheduler123",
-    phoneNumber: "+15555550101",
+    phoneNumber: "(555) 555-0101",
   });
   const bob = await upsertUser({
     email: "bob@schedmaker.local",
     name: "Bob Alvarez",
     password: "scheduler123",
-    phoneNumber: "+15555550102",
+    phoneNumber: "(555) 555-0102",
   });
   const cara = await upsertUser({
     email: "cara@schedmaker.local",
     name: "Cara Patel",
     password: "scheduler123",
-    phoneNumber: "+15555550103",
+    phoneNumber: "(555) 555-0103",
   });
 
   const company =

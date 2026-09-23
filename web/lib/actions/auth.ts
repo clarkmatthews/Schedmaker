@@ -6,7 +6,8 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
-import { emptyToNull } from "@/lib/utils";
+import { readPhone } from "@/lib/phone";
+import { signupEnabled } from "@/lib/signup";
 import { consumeEmailToken, issueEmailToken } from "@/lib/tokens";
 import { notifyAccountExists, notifyActivation, notifyPasswordReset } from "@/lib/notifications";
 import { ActionError, requireSession } from "@/lib/permissions";
@@ -38,6 +39,7 @@ async function clientIp() {
 }
 
 export async function signupAction(formData: FormData) {
+  if (!signupEnabled()) return { error: "Sign up is not available." };
   const ip = await clientIp();
   const signupKey = `signup:${ip}`;
   if (await isRateLimited(signupKey, 5)) {
@@ -109,7 +111,11 @@ export async function loginAction(formData: FormData) {
   }
   await resetRateLimit(loginKey);
   await resetRateLimit(loginEmailKey);
-  redirect("/app");
+  const account = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    select: { mustChangePassword: true },
+  });
+  redirect(account?.mustChangePassword ? "/account/password" : "/app");
 }
 
 export async function logoutAction() {
@@ -119,7 +125,9 @@ export async function logoutAction() {
 export async function activateAction(token: string, formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const name = String(formData.get("name") ?? "").trim();
-  const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
+  const phone = readPhone(String(formData.get("phoneNumber") ?? ""));
+  if (phone.error) return { error: phone.error };
+  const phoneNumber = phone.value;
   const tos = String(formData.get("tos") ?? "");
 
   const short = passwordTooShort(password);
@@ -142,6 +150,7 @@ export async function activateAction(token: string, formData: FormData) {
       phoneNumber,
       confirmedAndActive: true,
       passwordHash,
+      mustChangePassword: false,
     },
   });
 
@@ -200,6 +209,7 @@ export async function confirmPasswordResetAction(token: string, formData: FormDa
     data: {
       passwordHash,
       confirmedAndActive: true,
+      mustChangePassword: false,
       sessionVersion: { increment: 1 },
     },
   });
@@ -212,14 +222,14 @@ export async function confirmPasswordResetAction(token: string, formData: FormDa
 
 export async function updateAccountAction(formData: FormData) {
   const user = await requireSession();
-  const name = String(formData.get("name") ?? "").trim();
-  const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
+  const phone = readPhone(String(formData.get("phoneNumber") ?? ""));
+  if (phone.error) return { error: phone.error };
   const photoUrl = String(formData.get("photoUrl") ?? "").trim();
 
   try {
     await prisma.user.update({
       where: { id: user.id },
-      data: { name, phoneNumber, photoUrl },
+      data: { phoneNumber: phone.value, photoUrl },
     });
     return { ok: true as const };
   } catch (error) {
@@ -237,7 +247,7 @@ export async function updatePasswordAction(formData: FormData) {
 
   const existing = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { passwordHash: true, email: true },
+    select: { passwordHash: true, email: true, mustChangePassword: true },
   });
   if (!existing?.passwordHash) {
     return { error: "Current password is incorrect." };
@@ -246,12 +256,16 @@ export async function updatePasswordAction(formData: FormData) {
   if (!matches) {
     return { error: "Current password is incorrect." };
   }
+  if (existing.mustChangePassword && (await bcrypt.compare(password, existing.passwordHash))) {
+    return { error: "Choose a different password than the temporary one." };
+  }
 
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({
     where: { id: user.id },
     data: {
       passwordHash,
+      mustChangePassword: false,
       sessionVersion: { increment: 1 },
     },
   });

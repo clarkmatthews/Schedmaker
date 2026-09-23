@@ -1,6 +1,7 @@
 import { addDays, format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { prisma } from "@/lib/db";
+import { displayPhone } from "@/lib/phone";
 import { weekRange } from "@/lib/scheduling/range";
 
 export type ScheduleDay = {
@@ -112,7 +113,7 @@ export async function loadWeeklySchedule(params: {
     companyName: company.name,
     employeeName,
     firstName: employeeFirstName(employeeName),
-    managerPhone: company.mmsManagerPhone || "the manager on duty",
+    managerPhone: displayPhone(company.mmsManagerPhone) || "the manager on duty",
     timezone,
     weekStart: params.weekStart,
     weekEndInclusive: endInclusive,

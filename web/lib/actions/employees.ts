@@ -1,8 +1,10 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { parseBirthDate, parseHourlyRate } from "@/lib/employees";
+import { readPhone } from "@/lib/phone";
 import { emptyToNull } from "@/lib/utils";
 import { issueEmailToken } from "@/lib/tokens";
 import { notifyActivation, notifyOnboardWorker } from "@/lib/notifications";
@@ -109,7 +111,9 @@ export async function createEmployeeAction(companyId: string, formData: FormData
       .trim()
       .toLowerCase();
     const name = String(formData.get("name") ?? "").trim();
-    const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
+    const phone = readPhone(String(formData.get("phoneNumber") ?? ""));
+    if (phone.error) return { error: phone.error };
+    const phoneNumber = phone.value;
     const internalId = String(formData.get("internalId") ?? "").trim();
     const teamId = String(formData.get("teamId") ?? "").trim();
     const birthDateRaw = String(formData.get("birthDate") ?? "").trim();
@@ -280,7 +284,9 @@ export async function updateEmployeeAction(
       const email = String(formData.get("email") ?? "")
         .trim()
         .toLowerCase();
-      const phoneNumber = emptyToNull(String(formData.get("phoneNumber") ?? ""));
+      const phone = readPhone(String(formData.get("phoneNumber") ?? ""));
+      if (phone.error) return { error: phone.error };
+      const phoneNumber = phone.value;
       if (!email) return { error: "Email is required." };
       userUpdate.name = name;
       userUpdate.email = email;
@@ -299,6 +305,57 @@ export async function updateEmployeeAction(
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };
     return { error: "Could not update employee." };
+  }
+}
+
+export async function resetEmployeePasswordAction(
+  companyId: string,
+  userId: string,
+  password: string,
+) {
+  try {
+    const session = await requireSession();
+    const access = await getCompanyAccess(session.id, companyId);
+    if (!access.support && access.systemKey !== ADMINISTRATOR_SYSTEM_KEY) {
+      return { error: "Only an administrator can reset passwords." };
+    }
+    if (password.length < 8) {
+      return { error: "The temporary password must be at least 8 characters long." };
+    }
+    const person = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, support: true },
+    });
+    if (!person) return { error: "Employee not found." };
+    if (person.support && !access.support) {
+      return { error: "That account cannot be reset here." };
+    }
+    const [directory, loan] = await Promise.all([
+      prisma.directory.findUnique({
+        where: { companyId_userId: { companyId, userId } },
+        select: { userId: true },
+      }),
+      prisma.employeeLoan.findUnique({
+        where: { userId_companyId: { userId, companyId } },
+        select: { active: true },
+      }),
+    ]);
+    if (!directory && !loan?.active) return { error: "Employee not found." };
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        confirmedAndActive: true,
+        mustChangePassword: true,
+        sessionVersion: { increment: 1 },
+      },
+    });
+    return { ok: true as const };
+  } catch (error) {
+    if (error instanceof ActionError) return { error: error.message };
+    return { error: "Could not reset password." };
   }
 }
 

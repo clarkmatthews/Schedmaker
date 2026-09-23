@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { displayPhone } from "@/lib/phone";
 import {
   hourlyRateNumber,
   mapDirectoryEmployee,
@@ -136,7 +137,7 @@ export async function loadEmployeeBoard(companyId: string) {
       userId: loan.userId,
       name: loan.user.name,
       email: loan.user.email,
-      phoneNumber: loan.user.phoneNumber,
+      phoneNumber: displayPhone(loan.user.phoneNumber) || null,
       internalId: homeEntry?.internalId ?? "",
       confirmedAndActive: loan.user.confirmedAndActive,
       deactivated: Boolean(homeEntry?.deactivated),

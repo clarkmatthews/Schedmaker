@@ -13,6 +13,7 @@ import {
 import { TIMEZONES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +125,7 @@ export function ActivateForm({
       </div>
       <div>
         <Label htmlFor="phoneNumber">Phone</Label>
-        <Input id="phoneNumber" name="phoneNumber" defaultValue={defaultPhone} />
+        <PhoneInput id="phoneNumber" name="phoneNumber" defaultValue={defaultPhone} />
       </div>
       <div>
         <Label htmlFor="password">Password</Label>

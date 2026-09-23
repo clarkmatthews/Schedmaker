@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { updateAccountAction, updatePasswordAction } from "@/lib/actions/auth";
+import { displayPhone } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/ui/help-tip";
 import { FieldError, Input, Label } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 const lastSaved = new Map<
   string,
@@ -28,8 +30,9 @@ export function AccountSettings({
   const [accountOk, setAccountOk] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordOk, setPasswordOk] = useState(false);
-  const [name, setName] = useState(saved?.name ?? user.name);
-  const [phoneNumber, setPhoneNumber] = useState(saved?.phoneNumber ?? user.phoneNumber ?? "");
+  const [phoneNumber, setPhoneNumber] = useState(
+    saved?.phoneNumber ?? displayPhone(user.phoneNumber),
+  );
   const [photoUrl, setPhotoUrl] = useState(saved?.photoUrl ?? user.photoUrl);
 
   return (
@@ -45,7 +48,7 @@ export function AccountSettings({
             setAccountOk(false);
             return;
           }
-          lastSaved.set(user.email, { name, phoneNumber, photoUrl });
+          lastSaved.set(user.email, { name: user.name, phoneNumber, photoUrl });
           setAccountError(null);
           setAccountOk(true);
         }}
@@ -53,7 +56,7 @@ export function AccountSettings({
         <h1 className="text-lg font-semibold">Account</h1>
         <div>
           <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" value={name} onChange={(event) => setName(event.target.value)} />
+          <Input id="name" value={user.name} disabled />
         </div>
         <div>
           <Label>Email</Label>
@@ -61,11 +64,11 @@ export function AccountSettings({
         </div>
         <div>
           <Label htmlFor="phoneNumber">Phone</Label>
-          <Input
+          <PhoneInput
             id="phoneNumber"
             name="phoneNumber"
             value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
+            onValueChange={setPhoneNumber}
           />
         </div>
         <div>

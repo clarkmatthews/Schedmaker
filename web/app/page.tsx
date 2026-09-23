@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AuthHeader } from "@/components/marketing/site-header";
 import { LoginForm } from "@/components/forms/auth-forms";
+import { signupEnabled } from "@/lib/signup";
 
 export default async function HomePage() {
   const session = await auth();
@@ -19,12 +20,19 @@ export default async function HomePage() {
         <div className="rounded-lg border border-border bg-white p-6">
           <LoginForm />
         </div>
-        <p className="mt-4 text-center text-sm text-muted">
-          No account?{" "}
-          <Link href="/signup" className="text-teal hover:underline">
-            Sign up
-          </Link>
-        </p>
+        {signupEnabled() ? (
+          <p className="mt-4 text-center text-sm text-muted">
+            No account?{" "}
+            <Link href="/signup" className="text-teal hover:underline">
+              Sign up
+            </Link>
+          </p>
+        ) : null}
+        {process.env.NODE_ENV !== "production" ? (
+          <p className="mt-6 text-center text-sm text-muted">
+            Development administrator: manager@schedmaker.local / scheduler123
+          </p>
+        ) : null}
       </main>
     </div>
   );

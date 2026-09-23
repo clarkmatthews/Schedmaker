@@ -5,12 +5,14 @@ declare module "next-auth" {
     user: {
       id: string;
       support: boolean;
+      mustChangePassword: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     support: boolean;
     sessionVersion: number;
+    mustChangePassword: boolean;
   }
 }
 
@@ -19,5 +21,6 @@ declare module "next-auth/jwt" {
     id?: string;
     support?: boolean;
     sessionVersion?: number;
+    mustChangePassword?: boolean;
   }
 }

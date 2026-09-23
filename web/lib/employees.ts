@@ -1,3 +1,5 @@
+import { displayPhone } from "@/lib/phone";
+
 export type EmployeeRoleOption = {
   id: string;
   name: string;
@@ -106,7 +108,7 @@ export function mapDirectoryEmployee(
     userId: entry.userId,
     name: entry.user.name,
     email: entry.user.email,
-    phoneNumber: entry.user.phoneNumber,
+    phoneNumber: displayPhone(entry.user.phoneNumber) || null,
     internalId: entry.internalId,
     confirmedAndActive: entry.user.confirmedAndActive,
     deactivated: entry.deactivated,

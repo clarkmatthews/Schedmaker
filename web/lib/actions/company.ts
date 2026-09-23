@@ -11,6 +11,7 @@ import {
 } from "@/lib/permissions";
 import { createDefaultRoles } from "@/lib/roles";
 import { DEFAULT_TEAM_NAME, firstTeamOptions } from "@/lib/teams";
+import { readPhone } from "@/lib/phone";
 import { encryptSecret, isEncryptedSecret } from "@/lib/secrets";
 import { WEEKDAYS, type Weekday } from "@/lib/utils";
 
@@ -187,8 +188,12 @@ export async function updateMmsSettingsAction(companyId: string, formData: FormD
     const enabled = String(formData.get("mmsEnabled") ?? "") === "true";
     const accountSid = String(formData.get("mmsAccountSid") ?? "").trim();
     const authToken = String(formData.get("mmsAuthToken") ?? "").trim();
-    const fromNumber = String(formData.get("mmsFromNumber") ?? "").trim();
-    const managerPhone = String(formData.get("mmsManagerPhone") ?? "").trim();
+    const fromPhone = readPhone(String(formData.get("mmsFromNumber") ?? ""));
+    if (fromPhone.error) return { error: fromPhone.error };
+    const manager = readPhone(String(formData.get("mmsManagerPhone") ?? ""));
+    if (manager.error) return { error: manager.error };
+    const fromNumber = fromPhone.value ?? "";
+    const managerPhone = manager.value ?? "";
 
     const existing = await prisma.company.findUnique({
       where: { id: companyId },

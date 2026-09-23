@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AuthHeader } from "@/components/marketing/site-header";
 import { SignupForm } from "@/components/forms/auth-forms";
+import { signupEnabled } from "@/lib/signup";
 
 export default function SignupPage() {
+  if (!signupEnabled()) redirect("/");
+
   return (
     <div className="min-h-screen">
       <AuthHeader />
