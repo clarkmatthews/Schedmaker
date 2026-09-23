@@ -179,6 +179,10 @@ Dollars use the job’s default hourly rate, or the employee’s override when t
 
 ![Overtime](docs/screenshots/overtime.png)
 
+### Loan Management
+
+<img width="1213" height="491" alt="image" src="https://github.com/user-attachments/assets/5de73f9a-c645-40a1-85ac-f255b7578fca" />
+
 ### Scheduling settings
 
 Location state, meal-break thresholds, overtime rules, and the optional lock on historical dates.
@@ -202,6 +206,10 @@ Name, default timezone, and the day the workweek starts.
 None, View, or Edit for each section, including the ability to create companies.
 
 ![Role configuration](docs/screenshots/settings-roles.png)
+
+### Employee Management
+
+<img width="1186" height="842" alt="image" src="https://github.com/user-attachments/assets/742f4a0b-331e-4ee3-9042-dfd65cd68dae" />
 
 ---
 
