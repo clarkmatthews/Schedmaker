@@ -196,6 +196,9 @@ Dollars use the job’s default hourly rate, or the employee’s override when t
 
 ### Availability
 <img width="700" height="819" alt="image" src="https://github.com/user-attachments/assets/2f6b6890-ffbd-409d-9d5d-d751f89e4144" />
+
+Thin red lines on the day/hours where an employee is marked as unavailable
+
 <img width="890" height="619" alt="image" src="https://github.com/user-attachments/assets/bc65d6e5-a623-4adb-adaa-09b38a33422e" />
 
 
