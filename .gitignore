@@ -4,7 +4,7 @@ web/.env
 web/.env.local
 web/.env*.local
 
-# Dependencies and build output
+# Dependencies and build output notes
 node_modules/
 web/.next/
 web/out/
