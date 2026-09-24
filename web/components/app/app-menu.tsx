@@ -86,6 +86,15 @@ function CompanyNav({
           Employee loans
         </Link>
       ) : null}
+      {company.capabilities.shiftSwap ? (
+        <Link
+          href={`/app/companies/${company.id}/shift-swaps`}
+          className={linkClass(pad)}
+          onClick={onNavigate}
+        >
+          Shift Swap
+        </Link>
+      ) : null}
     </>
   );
 }
@@ -95,11 +104,15 @@ export function AppMenu({
   capabilities,
   teams = [],
   companies = [],
+  loanSwaps = [],
+  narrowMenu = false,
 }: {
   companyId?: string;
   capabilities?: MenuCapabilities;
   teams?: { id: string; name: string }[];
   companies?: AppMenuCompany[];
+  loanSwaps?: { id: string; name: string }[];
+  narrowMenu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
@@ -113,11 +126,16 @@ export function AppMenu({
           settings: false,
           loans: false,
           switchCompany: false,
+          shiftSwap: false,
+          availability: false,
         },
         teams,
       }
     : null;
   const offCompany = !currentCompany && companies.length > 0;
+  const showAvailability = currentCompany
+    ? currentCompany.capabilities.availability
+    : companies.some((company) => company.capabilities.availability);
   const canSwitchCompany = Boolean(
     capabilities?.switchCompany || companies.some((company) => company.capabilities.switchCompany),
   );
@@ -144,12 +162,24 @@ export function AppMenu({
       {open ? (
         <div className="absolute left-0 z-30 mt-2 w-72 rounded-lg border border-border bg-white p-2 text-ink shadow-xl">
           {currentCompany ? (
-            <CompanyNav
-              company={currentCompany}
-              openSection={section}
-              toggle={toggle}
-              onNavigate={close}
-            />
+            <>
+              <CompanyNav
+                company={currentCompany}
+                openSection={section}
+                toggle={toggle}
+                onNavigate={close}
+              />
+              {loanSwaps.map((loan) => (
+                <Link
+                  key={loan.id}
+                  href={`/app/companies/${loan.id}/shift-swaps`}
+                  className={linkClass()}
+                  onClick={close}
+                >
+                  Shift Swap · {loan.name}
+                </Link>
+              ))}
+            </>
           ) : null}
           {offCompany ? (
             <>
@@ -193,17 +223,19 @@ export function AppMenu({
               )}
             </>
           ) : null}
-          <Link
-            href={
-              currentCompany
-                ? `/app/companies/${currentCompany.id}/availability`
-                : "/app/availability"
-            }
-            className={linkClass(currentCompany || companies.length > 0 ? "border-t border-border" : "")}
-            onClick={close}
-          >
-            Availability
-          </Link>
+          {narrowMenu || !showAvailability ? null : (
+            <Link
+              href={
+                currentCompany
+                  ? `/app/companies/${currentCompany.id}/availability`
+                  : "/app/availability"
+              }
+              className={linkClass(currentCompany || companies.length > 0 ? "border-t border-border" : "")}
+              onClick={close}
+            >
+              Availability
+            </Link>
+          )}
           <Link href="/account" className={linkClass()} onClick={close}>
             My account
           </Link>

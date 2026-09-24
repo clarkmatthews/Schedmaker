@@ -10,6 +10,8 @@ export async function AppShell({
   teams,
   capabilities,
   companies,
+  loanSwaps,
+  narrowMenu,
 }: {
   children: React.ReactNode;
   companyId?: string;
@@ -17,6 +19,8 @@ export async function AppShell({
   teams?: { id: string; name: string }[];
   capabilities?: MenuCapabilities;
   companies?: AppMenuCompany[];
+  loanSwaps?: { id: string; name: string }[];
+  narrowMenu?: boolean;
 }) {
   const session = await auth();
   const userLabel = session?.user?.name || session?.user?.email;
@@ -31,6 +35,8 @@ export async function AppShell({
               capabilities={capabilities}
               teams={teams}
               companies={companies}
+              loanSwaps={loanSwaps}
+              narrowMenu={narrowMenu}
             />
             <Link href="/app" className="text-lg font-bold text-teal">
               Schedmaker

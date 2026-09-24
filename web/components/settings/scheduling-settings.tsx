@@ -31,6 +31,8 @@ function hoursToMinutes(hours: number) {
 
 type SavedScheduling = {
   locked: boolean;
+  availabilityEnabled: boolean;
+  shiftSwapEnabled: boolean;
   state: string;
   rules: MealRules;
   otRules: OvertimeRules;
@@ -43,6 +45,8 @@ export function SchedulingSettings({
   companyId,
   companyName,
   lockHistoricalSchedule,
+  availabilityEnabled,
+  shiftSwapEnabled,
   laborState,
   mealRules,
   overtimeRules,
@@ -51,6 +55,8 @@ export function SchedulingSettings({
   companyId: string;
   companyName: string;
   lockHistoricalSchedule: boolean;
+  availabilityEnabled: boolean;
+  shiftSwapEnabled: boolean;
   laborState: string;
   mealRules: unknown;
   overtimeRules: unknown;
@@ -59,6 +65,8 @@ export function SchedulingSettings({
   const saved = lastSaved.get(companyId);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(saved?.locked ?? lockHistoricalSchedule);
+  const [availability, setAvailability] = useState(saved?.availabilityEnabled ?? availabilityEnabled);
+  const [swaps, setSwaps] = useState(saved?.shiftSwapEnabled ?? shiftSwapEnabled);
   const [state, setState] = useState(saved?.state ?? laborState);
   const [rules, setRules] = useState<MealRules>(
     saved?.rules ?? parseMealRules(mealRules) ?? mealRulesForState(laborState),
@@ -96,6 +104,8 @@ export function SchedulingSettings({
         event.preventDefault();
         const formData = new FormData();
         formData.set("lockHistoricalSchedule", locked ? "true" : "false");
+        formData.set("availabilityEnabled", availability ? "true" : "false");
+        formData.set("shiftSwapEnabled", swaps ? "true" : "false");
         formData.set("laborState", state);
         formData.set("mealRules", JSON.stringify(rules));
         formData.set("overtimeRules", JSON.stringify(otRules));
@@ -107,6 +117,8 @@ export function SchedulingSettings({
         }
         lastSaved.set(companyId, {
           locked,
+          availabilityEnabled: availability,
+          shiftSwapEnabled: swaps,
           state,
           rules: structuredClone(rules),
           otRules: structuredClone(otRules),
@@ -138,6 +150,42 @@ export function SchedulingSettings({
               publish shifts for the current day or any prior day in this location’s
               timezone. Publishing a week removes drafts on those days and publishes
               the rest of the week.
+            </span>
+          </span>
+        </label>
+      </div>
+      <div className="rounded-md border border-border p-4">
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={availability}
+            onChange={(event) => setAvailability(event.target.checked)}
+          />
+          <span>
+            <span className="font-medium text-ink">Enable Availability</span>
+            <span className="mt-1 block text-muted">
+              Employees can record times they cannot work. Managers with Availability
+              view or edit can review those entries. While this is off, the menu,
+              page, schedule bars, and warnings are hidden for this company.
+            </span>
+          </span>
+        </label>
+      </div>
+      <div className="rounded-md border border-border p-4">
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={swaps}
+            onChange={(event) => setSwaps(event.target.checked)}
+          />
+          <span>
+            <span className="font-medium text-ink">Enable Shift Swapping</span>
+            <span className="mt-1 block text-muted">
+              Employees can offer a future shift or claim a published open shift.
+              A manager with Shift Swap edit approves before the shift changes hands.
+              While this is off, shift swapping is hidden for everyone at this company.
             </span>
           </span>
         </label>

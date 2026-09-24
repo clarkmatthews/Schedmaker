@@ -99,6 +99,8 @@ export default async function CompanySettingsPage({
               companyId={companyId}
               companyName={company.name}
               lockHistoricalSchedule={company.lockHistoricalSchedule}
+              availabilityEnabled={company.availabilityEnabled}
+              shiftSwapEnabled={company.shiftSwapEnabled}
               laborState={company.laborState}
               mealRules={company.mealRules}
               overtimeRules={company.overtimeRules}

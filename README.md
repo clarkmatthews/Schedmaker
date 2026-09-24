@@ -43,6 +43,8 @@ Warnings are visual. They do not block save, so you can still post a non-complia
 
 ### Availability and time off
 
+**Enable Availability** is on for each company until it is turned off under Scheduling settings. While it is off, the menu item, page, schedule bars, and overlap warnings are hidden for that company.
+
 **Availability** is in the hamburger menu next to My account, and it keeps the same menu as the rest of that company. An employee sees the items their role already shows. A manager sees the full company menu.
 
 Everyone can record times they cannot work. An entry is either one calendar day or the same weekday every week, for the whole day or a start and end time. It is saved on that person and applies at every restaurant, including loans, as soon as it is saved. There is no approval step.
@@ -55,6 +57,18 @@ Everyone can record times they cannot work. An entry is either one calendar day 
 On the week view, a thin red bar sits at the top of that person’s day. All day is a full-width bar. A time range is the same bar with the hours written on it. On the day view, the bar covers only those hours, or the whole visible day when the entry is all day.
 
 A shift on this schedule that overlaps the time shows a warning that names the day or the hours, next to the meal and minor warnings. Save, drag, copy, and publish stay allowed. Grey shifts from another restaurant do not get this warning.
+
+### Shift Swap
+
+**Enable Shift Swapping** is off until a company turns it on under Scheduling settings. While it is off, the menu item, page, and actions are hidden for everyone at that company.
+
+Anyone in the company directory, and anyone on an active loan there, can offer one of their own published shifts on a day after today, or request a published shift that is already on the board. An employee-offered shift stays on that person’s schedule until a manager approves. A published shift with no owner can be requested the same day; earlier days cannot. The person requesting it must already have that job, must not overlap the shift on any restaurant’s schedule, and must not pick up a shift that would create a minor-rule warning.
+
+**Shift Swap** is a role section with None, View, and Edit, in the same group as Employees and Scheduling. The Employee role stays None, and people can still offer and request their own shifts. View opens the approval list and cannot change it. Edit can approve, deny, or cancel an employee’s offer. Restaurant managers and other custom roles stay None until an administrator assigns Shift Swap. Company managers do not receive it automatically.
+
+Approving a request assigns the published shift to that person and closes the other pending requests. Denying one request leaves the offer open. Each approval tile shows the claimer, who is giving the shift up when it is not unassigned, and the on-clock hours that day and workweek that would result.
+
+When company MMS is on, a text goes to eligible employees when a swap is offered or when an unassigned shift gets its first request. Approval texts the person who received the shift. A denial texts the original owner, when there is one, and the person who asked. Cancelling an employee’s offer texts that person and anyone with a pending request. If Twilio is not fully configured, the message is written to the server console and the swap is still saved.
 
 ### Shift editing
 

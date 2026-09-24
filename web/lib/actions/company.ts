@@ -134,6 +134,8 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
   try {
     await requirePermission(companyId, "scheduling", "edit");
     const lockHistoricalSchedule = String(formData.get("lockHistoricalSchedule") ?? "") === "true";
+    const shiftSwapEnabled = String(formData.get("shiftSwapEnabled") ?? "") === "true";
+    const availabilityEnabled = String(formData.get("availabilityEnabled") ?? "") === "true";
     const laborState = String(formData.get("laborState") ?? "").trim().toUpperCase();
     let mealRules: Prisma.InputJsonValue | undefined;
     let overtimeRules: Prisma.InputJsonValue | undefined;
@@ -166,6 +168,8 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
       where: { id: companyId },
       data: {
         lockHistoricalSchedule,
+        shiftSwapEnabled,
+        availabilityEnabled,
         laborState,
         ...(mealRules !== undefined ? { mealRules } : {}),
         ...(overtimeRules !== undefined ? { overtimeRules } : {}),
@@ -175,6 +179,9 @@ export async function updateSchedulingRulesAction(companyId: string, formData: F
     revalidatePath(`/app/companies/${companyId}`);
     revalidatePath(`/app/companies/${companyId}/settings`);
     revalidatePath(`/app/companies/${companyId}`, "layout");
+    revalidatePath(`/app/companies/${companyId}/shift-swaps`);
+    revalidatePath(`/app/companies/${companyId}/availability`);
+    revalidatePath("/app/availability");
     return { ok: true as const };
   } catch (error) {
     if (error instanceof ActionError) return { error: error.message };

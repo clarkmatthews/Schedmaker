@@ -14,9 +14,20 @@ export async function availabilityAudience(actorId: string, companyId?: string) 
   });
   if (!actor) throw new ActionError("You must be signed in.");
 
-  const companies = (await getUserCompanies(actorId, actor.support)).filter((company) =>
-    companyId ? company.id === companyId : true,
+  if (companyId) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { availabilityEnabled: true, archived: true },
+    });
+    if (!company || company.archived || !company.availabilityEnabled) {
+      throw new ActionError("Availability is not enabled.");
+    }
+  }
+
+  const companies = (await getUserCompanies(actorId, actor.support)).filter(
+    (company) => company.availabilityEnabled && (companyId ? company.id === companyId : true),
   );
+  if (!companyId && companies.length === 0) throw new ActionError("Availability is not enabled.");
   const visible = new Set<string>([actorId]);
   const editable = new Set<string>([actorId]);
   let canReview = false;

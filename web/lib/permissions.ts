@@ -150,14 +150,21 @@ export function canCreateCompanies(
 }
 
 export function menuCapabilities(
-  access: Pick<CompanyAccess, "support" | "permissions">,
+  access: Pick<CompanyAccess, "support" | "permissions" | "inDirectory">,
+  options?: { shiftSwap?: boolean; loanSwapOnly?: boolean; availability?: boolean },
 ): MenuCapabilities {
+  const enabled = Boolean(options?.shiftSwap);
   return {
     employees: can(access, "employees", "view"),
     schedule: can(access, "schedule", "view"),
     settings: hasSettingsAccess(access, "view"),
     loans: can(access, "company", "edit"),
     switchCompany: canCreateCompanies(access),
+    shiftSwap:
+      Boolean(options?.loanSwapOnly) ||
+      (enabled &&
+        (access.support || access.inDirectory || can(access, "shiftSwap", "view"))),
+    availability: options?.availability !== false,
   };
 }
 
@@ -243,4 +250,49 @@ export async function getUserCompanies(userId: string, support: boolean) {
   return [...companies.values()]
     .filter((company) => !company.archived)
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function listMenuCompanies(userId: string, support: boolean) {
+  const [companies, loans] = await Promise.all([
+    getUserCompanies(userId, support),
+    prisma.employeeLoan.findMany({
+      where: {
+        userId,
+        active: true,
+        company: { archived: false, shiftSwapEnabled: true },
+      },
+      include: {
+        company: {
+          include: { teams: { where: { archived: false }, orderBy: { name: "asc" } } },
+        },
+      },
+    }),
+  ]);
+
+  const byId = new Map(companies.map((company) => [company.id, company]));
+  for (const loan of loans) {
+    if (!byId.has(loan.company.id)) byId.set(loan.company.id, loan.company);
+  }
+  const loanIds = new Set(loans.map((loan) => loan.companyId));
+  const rows = [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  return Promise.all(
+    rows.map(async (company) => {
+      const access = await getCompanyAccess(userId, company.id);
+      const enabled = company.shiftSwapEnabled;
+      const roleSeesSwap =
+        enabled &&
+        (access.support || access.inDirectory || can(access, "shiftSwap", "view"));
+      return {
+        id: company.id,
+        name: company.name,
+        capabilities: menuCapabilities(access, {
+          shiftSwap: enabled,
+          loanSwapOnly: enabled && loanIds.has(company.id) && !roleSeesSwap,
+          availability: company.availabilityEnabled,
+        }),
+        teams: company.teams.map((team) => ({ id: team.id, name: team.name })),
+      };
+    }),
+  );
 }

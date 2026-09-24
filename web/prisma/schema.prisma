@@ -33,6 +33,8 @@ model User {
   shifts           Shift[]
   coveringBreaks   BreakCoverage[]
   unavailability   Unavailability[]
+  swapOffersMade   ShiftSwapOffer[] @relation("SwapOffersMade")
+  swapClaimsMade   ShiftSwapClaim[] @relation("SwapClaimsMade")
 }
 
 model Unavailability {
@@ -86,6 +88,8 @@ model Company {
   mmsFromNumber          String  @default("")
   mmsManagerPhone        String  @default("")
   responsibilitiesEnabled Boolean @default(true)
+  shiftSwapEnabled Boolean @default(false)
+  availabilityEnabled Boolean @default(true)
 
   teams            Team[]
   directory        Directory[]
@@ -94,6 +98,8 @@ model Company {
   roles            Role[]
   responsibilities Responsibility[]
   hoursTemplates   HoursTemplate[]  @relation("OwnedHours")
+  swapOffers       ShiftSwapOffer[]
+  swapClaims       ShiftSwapClaim[]
 }
 
 model MmsScheduleShare {
@@ -166,10 +172,49 @@ model Shift {
   stop      DateTime
   breaks           ShiftBreak[]
   responsibilities ShiftResponsibility[]
+  swapOffers       ShiftSwapOffer[]
+  swapClaims       ShiftSwapClaim[]
 
   @@index([teamId, start])
   @@index([userId])
   @@index([jobId])
+}
+
+model ShiftSwapOffer {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @db.Uuid
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  shiftId         String   @db.Uuid
+  shift           Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  offeredByUserId String   @db.Uuid
+  offeredBy       User     @relation("SwapOffersMade", fields: [offeredByUserId], references: [id], onDelete: Cascade)
+  status          String   @default("open")
+  createdAt       DateTime @default(now())
+  claims          ShiftSwapClaim[]
+
+  @@index([companyId, status])
+  @@index([shiftId])
+  @@index([offeredByUserId])
+}
+
+model ShiftSwapClaim {
+  id              String    @id @default(uuid()) @db.Uuid
+  companyId       String    @db.Uuid
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  shiftId         String    @db.Uuid
+  shift           Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  offerId         String?   @db.Uuid
+  offer           ShiftSwapOffer? @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  claimerUserId   String    @db.Uuid
+  claimer         User      @relation("SwapClaimsMade", fields: [claimerUserId], references: [id], onDelete: Cascade)
+  status          String    @default("pending")
+  createdAt       DateTime  @default(now())
+  decidedAt       DateTime?
+  decidedByUserId String?   @db.Uuid
+
+  @@index([companyId, status])
+  @@index([shiftId, status])
+  @@index([claimerUserId])
 }
 
 model ShiftBreak {

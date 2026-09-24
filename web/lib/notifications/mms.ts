@@ -22,6 +22,17 @@ export function mmsConfigReady(company: {
   );
 }
 
+export function textConfigReady(company: {
+  mmsEnabled: boolean;
+  mmsAccountSid: string;
+  mmsAuthToken: string;
+  mmsFromNumber: string;
+}) {
+  return Boolean(
+    company.mmsEnabled && company.mmsAccountSid && company.mmsAuthToken && company.mmsFromNumber,
+  );
+}
+
 export async function sendMms(params: {
   config: MmsConfig;
   to: string;
@@ -33,6 +44,29 @@ export async function sendMms(params: {
   form.set("From", phoneToE164(params.config.fromNumber) ?? params.config.fromNumber);
   form.set("Body", params.body);
   form.set("MediaUrl", params.mediaUrl);
+
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${params.config.accountSid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${params.config.accountSid}:${params.config.authToken}`).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: form,
+    },
+  );
+
+  if (!response.ok) {
+    console.error("[mms] Twilio error", await response.text());
+  }
+}
+
+export async function sendText(params: { config: MmsConfig; to: string; body: string }) {
+  const form = new URLSearchParams();
+  form.set("To", phoneToE164(params.to) ?? params.to);
+  form.set("From", phoneToE164(params.config.fromNumber) ?? params.config.fromNumber);
+  form.set("Body", params.body);
 
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${params.config.accountSid}/Messages.json`,

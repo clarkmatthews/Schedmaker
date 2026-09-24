@@ -235,6 +235,11 @@ export default async function SchedulingPage({
       ...shifts.flatMap((shift) => (shift.userId ? [shift.userId] : [])),
     ]),
   ];
+  const availabilitySettings = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { availabilityEnabled: true },
+  });
+  const availabilityOn = Boolean(availabilitySettings?.availabilityEnabled);
   const [externalShifts, unavailabilityRows] = await Promise.all([
     boardIds.length
       ? prisma.shift.findMany({
@@ -250,7 +255,7 @@ export default async function SchedulingPage({
           },
         })
       : [],
-    availabilityUserIds.length
+    availabilityOn && availabilityUserIds.length
       ? prisma.unavailability.findMany({
           where: { userId: { in: availabilityUserIds } },
         })
