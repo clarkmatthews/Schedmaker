@@ -105,6 +105,11 @@ Every person has one **home store**. The home store can loan them to other compa
 - **Change** replaces that person’s full set of loans. **Remove** ends one destination. When the last destination is removed, they leave the list.
 - Only the home store can change loans (or administrators). A loan cannot point at the home store, and a store where the person already has a directory entry is not a loan.
 
+### Shift Swapping Marketplace
+
+<img width="1269" height="579" alt="image" src="https://github.com/user-attachments/assets/fc998e55-8716-42a9-9709-4fd50a1de14d" />
+
+
 ### Hours templates
 
 Each location can assign an hours template that shapes the day-view grid.
