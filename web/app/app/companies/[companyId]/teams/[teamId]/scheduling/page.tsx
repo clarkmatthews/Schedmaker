@@ -14,6 +14,10 @@ import {
   parseOvertimeRules,
 } from "@/lib/scheduling/labor-rules";
 import { evaluateMinorWarnings, parseMinorRules } from "@/lib/scheduling/minor-rules";
+import {
+  evaluateAvailabilityWarnings,
+  toUnavailableEntry,
+} from "@/lib/scheduling/availability";
 
 export default async function SchedulingPage({
   params,
@@ -225,20 +229,37 @@ export default async function SchedulingPage({
   );
 
   const boardIds = scheduledWorkers.map((worker) => worker.id);
-  const externalShifts = boardIds.length
-    ? await prisma.shift.findMany({
-        where: {
-          userId: { in: boardIds },
-          start: { lt: weekBounds.end },
-          stop: { gt: weekBounds.start },
-          team: { companyId: { not: companyId } },
-        },
-        include: {
-          breaks: true,
-          team: { select: { company: { select: { name: true } } } },
-        },
-      })
-    : [];
+  const availabilityUserIds = [
+    ...new Set([
+      ...boardIds,
+      ...shifts.flatMap((shift) => (shift.userId ? [shift.userId] : [])),
+    ]),
+  ];
+  const [externalShifts, unavailabilityRows] = await Promise.all([
+    boardIds.length
+      ? prisma.shift.findMany({
+          where: {
+            userId: { in: boardIds },
+            start: { lt: weekBounds.end },
+            stop: { gt: weekBounds.start },
+            team: { companyId: { not: companyId } },
+          },
+          include: {
+            breaks: true,
+            team: { select: { company: { select: { name: true } } } },
+          },
+        })
+      : [],
+    availabilityUserIds.length
+      ? prisma.unavailability.findMany({
+          where: { userId: { in: availabilityUserIds } },
+        })
+      : [],
+  ]);
+  const unavailability = unavailabilityRows.flatMap((row) => {
+    const entry = toUnavailableEntry(row);
+    return entry ? [entry] : [];
+  });
 
   return (
     <CalendarShell
@@ -276,6 +297,7 @@ export default async function SchedulingPage({
         archived: duty.archived,
       }))}
       canEdit={canEditSchedule}
+      unavailability={unavailability}
       overtimeEnabled={Boolean(overtimeRules?.enabled)}
       responsibilitiesEnabled={team.company.responsibilitiesEnabled}
       shifts={(() => {
@@ -348,6 +370,7 @@ export default async function SchedulingPage({
               weekStart: weekBounds.start,
               weekEnd: weekBounds.end,
             }),
+            ...evaluateAvailabilityWarnings(item, unavailability, timezone),
           ],
         }));
         const splits = allocateOvertime(

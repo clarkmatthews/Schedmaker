@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { ShiftCard } from "@/components/scheduling/shift-card";
+import type { AvailabilityBar } from "@/lib/scheduling/availability";
 import {
   SHIFT_DRAG_TYPE,
   type CalendarRow,
@@ -17,6 +18,7 @@ export function WeekView({
   rows,
   viewBy,
   shiftsFor,
+  barsFor,
   timezone,
   onCreate,
   onOpen,
@@ -31,6 +33,7 @@ export function WeekView({
   viewBy: ViewBy;
   timezone: string;
   shiftsFor: (rowId: string, day: Date) => CalendarShift[];
+  barsFor?: (userId: string, day: Date) => AvailabilityBar[];
   onCreate?: (day: Date, rowId: string) => void;
   onOpen?: (shift: CalendarShift) => void;
   onPlace?: (shiftId: string, day: Date, rowId: string, copy: boolean) => void;
@@ -146,6 +149,18 @@ export function WeekView({
                       }}
                     >
                       <div className="space-y-1">
+                        {viewBy === "employee" && row.id
+                          ? (barsFor?.(row.id, day) ?? []).map((bar) => (
+                              <div
+                                key={bar.key}
+                                title={bar.allDay ? "Unavailable all day" : bar.label}
+                                className={`truncate rounded-sm bg-red-600 text-[10px] font-medium leading-4 text-white ${bar.allDay ? "h-1" : "px-1"}`}
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                {bar.allDay ? null : bar.label}
+                              </div>
+                            ))
+                          : null}
                         {cellShifts.map((shift) => (
                           <ShiftCard
                             key={shift.id}

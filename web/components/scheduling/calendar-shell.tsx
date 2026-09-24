@@ -27,6 +27,7 @@ import {
 import { WeekView } from "@/components/scheduling/views/week-view";
 import { DayView } from "@/components/scheduling/views/day-view";
 import { LaborSummary } from "@/components/scheduling/labor-summary";
+import { availabilityBars, type UnavailableEntry } from "@/lib/scheduling/availability";
 import type {
   CalendarJob,
   CalendarResponsibility,
@@ -51,6 +52,7 @@ export function CalendarShell({
   rangeEndIso,
   timezone,
   shifts,
+  unavailability = [],
   workers,
   jobs,
   responsibilities,
@@ -68,6 +70,7 @@ export function CalendarShell({
   rangeEndIso: string;
   timezone: string;
   shifts: CalendarShift[];
+  unavailability?: UnavailableEntry[];
   workers: CalendarWorker[];
   jobs: CalendarJob[];
   responsibilities: CalendarResponsibility[];
@@ -105,6 +108,11 @@ export function CalendarShell({
       ...jobs.map((j) => ({ id: j.id, label: j.name, color: j.color })),
     ];
   }, [viewBy, workers, jobs, canEdit]);
+
+  function barsFor(userId: string, day: Date) {
+    if (!userId) return [];
+    return availabilityBars(unavailability, userId, day, timezone);
+  }
 
   function shiftsFor(rowId: string, day: Date) {
     return shifts.filter((shift) => {
@@ -406,6 +414,7 @@ export function CalendarShell({
           viewBy={viewBy}
           timezone={timezone}
           shiftsFor={shiftsFor}
+          barsFor={barsFor}
           onCreate={canEdit ? openCreate : undefined}
           onOpen={canEdit ? openEdit : undefined}
           onPlace={canEdit ? place : undefined}
@@ -421,6 +430,7 @@ export function CalendarShell({
           viewBy={viewBy}
           timezone={timezone}
           shiftsFor={shiftsFor}
+          barsFor={barsFor}
           onCreate={canEdit ? openCreate : undefined}
           onOpen={canEdit ? openEdit : undefined}
           onPlace={canEdit ? place : undefined}

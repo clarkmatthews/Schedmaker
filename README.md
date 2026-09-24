@@ -41,6 +41,21 @@ When meal rules are on, shifts that miss a required meal show a red **!** on the
 
 Warnings are visual. They do not block save, so you can still post a non-compliant schedule when you need to.
 
+### Availability and time off
+
+**Availability** is in the hamburger menu next to My account, and it keeps the same menu as the rest of that company. An employee sees the items their role already shows. A manager sees the full company menu.
+
+Everyone can record times they cannot work. An entry is either one calendar day or the same weekday every week, for the whole day or a start and end time. It is saved on that person and applies at every restaurant, including loans, as soon as it is saved. There is no approval step.
+
+- The Employee role stays at None. People still add and remove only their own entries.
+- **Availability** is a role section with None, View, and Edit, in the same group as Employees and Scheduling. Restaurant managers and company managers have Edit. Existing Restaurant manager roles are updated to Edit. Other custom roles stay None until an administrator changes them.
+- View opens the company list and cannot change it. Edit can add and remove entries for anyone in that company’s directory or on an active loan there.
+- Managers with View or Edit see **Defined availability** at the bottom of the page. It lists only people who already have entries, with those times under the name. Choosing a name opens that person.
+
+On the week view, a thin red bar sits at the top of that person’s day. All day is a full-width bar. A time range is the same bar with the hours written on it. On the day view, the bar covers only those hours, or the whole visible day when the entry is all day.
+
+A shift on this schedule that overlaps the time shows a warning that names the day or the hours, next to the meal and minor warnings. Save, drag, copy, and publish stay allowed. Grey shifts from another restaurant do not get this warning.
+
 ### Shift editing
 
 Click a shift or an empty cell to create or edit.

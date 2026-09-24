@@ -193,6 +193,17 @@ export function AppMenu({
               )}
             </>
           ) : null}
+          <Link
+            href={
+              currentCompany
+                ? `/app/companies/${currentCompany.id}/availability`
+                : "/app/availability"
+            }
+            className={linkClass(currentCompany || companies.length > 0 ? "border-t border-border" : "")}
+            onClick={close}
+          >
+            Availability
+          </Link>
           <Link href="/account" className={linkClass()} onClick={close}>
             My account
           </Link>

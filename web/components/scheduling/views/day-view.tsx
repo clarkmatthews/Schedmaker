@@ -11,6 +11,7 @@ import {
 import { LoanedMark } from "@/components/scheduling/loaned-mark";
 import { ShiftCard } from "@/components/scheduling/shift-card";
 import { HelpTip } from "@/components/ui/help-tip";
+import type { AvailabilityBar } from "@/lib/scheduling/availability";
 import {
   SHIFT_DRAG_TYPE,
   type CalendarRow,
@@ -34,6 +35,23 @@ function hourMarks(startSlot: number, endSlot: number) {
     marks.push(slot);
   }
   return marks;
+}
+
+function unavailableStyle(
+  bar: AvailabilityBar,
+  rangeStart: number,
+  rangeEnd: number,
+) {
+  const startSlot = bar.allDay ? rangeStart : bar.startSlot;
+  const endSlot = bar.allDay ? rangeEnd : bar.endSlot;
+  const start = Math.max(startSlot, rangeStart);
+  const end = Math.min(endSlot, rangeEnd);
+  if (end <= start) return null;
+  const span = Math.max(rangeEnd - rangeStart, 1);
+  return {
+    left: `${((start - rangeStart) / span) * 100}%`,
+    width: `${((end - start) / span) * 100}%`,
+  };
 }
 
 function hourBands(startSlot: number, endSlot: number) {
@@ -106,6 +124,7 @@ export function DayView({
   rows,
   viewBy,
   shiftsFor,
+  barsFor,
   timezone,
   hoursTemplate,
   onCreate,
@@ -121,6 +140,7 @@ export function DayView({
   timezone: string;
   hoursTemplate: HoursTemplateView | null;
   shiftsFor: (rowId: string, day: Date) => CalendarShift[];
+  barsFor?: (userId: string, day: Date) => AvailabilityBar[];
   onCreate?: (day: Date, rowId: string, startSlot: number) => void;
   onOpen?: (shift: CalendarShift) => void;
   onPlace?: (shiftId: string, day: Date, rowId: string, copy: boolean, startSlot: number) => void;
@@ -336,6 +356,20 @@ export function DayView({
                           ) : null}
                         </div>
                       ))}
+                  {viewBy === "employee" && row.id
+                    ? (barsFor?.(row.id, day) ?? []).map((bar, index) => {
+                        const style = unavailableStyle(bar, range.startSlot, range.endSlot);
+                        if (!style) return null;
+                        return (
+                          <div
+                            key={bar.key}
+                            title={bar.allDay ? "Unavailable all day" : bar.label}
+                            className="pointer-events-none absolute z-[3] h-1 bg-red-600"
+                            style={{ ...style, top: index * 4 }}
+                          />
+                        );
+                      })
+                    : null}
                   {rowShifts.map((shift, index) => {
                     const style = barStyle(
                       new Date(shift.start),

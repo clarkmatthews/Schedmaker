@@ -32,6 +32,22 @@ model User {
   jobs             EmployeeJob[]
   shifts           Shift[]
   coveringBreaks   BreakCoverage[]
+  unavailability   Unavailability[]
+}
+
+model Unavailability {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind         String
+  weekday      Int?
+  date         DateTime? @db.Date
+  allDay       Boolean   @default(true)
+  startMinutes Int?
+  endMinutes   Int?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model AuthRateLimit {

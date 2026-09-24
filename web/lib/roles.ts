@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 export const PERMISSION_SECTIONS = [
   { id: "employees", label: "Employees", group: "nav" },
   { id: "schedule", label: "Scheduling", group: "nav" },
+  { id: "availability", label: "Availability", group: "nav" },
   { id: "createCompanies", label: "Create companies", group: "nav" },
   { id: "company", label: "Company", group: "settings" },
   { id: "hours", label: "Hours", group: "settings" },
@@ -48,7 +49,7 @@ export function employeePermissions(): RolePermissions {
 }
 
 export function managerPermissions(): RolePermissions {
-  return { ...nonePermissions(), employees: "edit", schedule: "edit" };
+  return { ...nonePermissions(), employees: "edit", schedule: "edit", availability: "edit" };
 }
 
 export function isAccessLevel(value: unknown): value is AccessLevel {
