@@ -194,6 +194,11 @@ Dollars use the job’s default hourly rate, or the employee’s override when t
 
 ![Overtime](docs/screenshots/overtime.png)
 
+### Availability
+<img width="700" height="819" alt="image" src="https://github.com/user-attachments/assets/2f6b6890-ffbd-409d-9d5d-d751f89e4144" />
+<img width="890" height="619" alt="image" src="https://github.com/user-attachments/assets/bc65d6e5-a623-4adb-adaa-09b38a33422e" />
+
+
 ### Loan Management
 
 <img width="1213" height="491" alt="image" src="https://github.com/user-attachments/assets/5de73f9a-c645-40a1-85ac-f255b7578fca" />
